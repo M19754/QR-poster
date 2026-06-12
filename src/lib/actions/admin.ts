@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma, getActiveCamp } from "@/lib/db";
 import { cloneCampStructure } from "@/lib/camp";
 import { hashPassword } from "@/lib/password";
+import { ADMIN_PASSWORD, ADMIN_USERNAME } from "@/lib/admin-auth";
 import {
   isAdminAuthenticated,
   setAdminSession,
@@ -21,10 +22,7 @@ export async function adminLogin(formData: FormData) {
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  const adminUsername = process.env.ADMIN_USERNAME ?? "admin";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "admin";
-
-  if (username !== adminUsername || password !== adminPassword) {
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
     return { error: "Forkert brugernavn eller adgangskode." };
   }
 

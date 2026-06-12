@@ -75,7 +75,7 @@ async function main() {
   console.log(`  Grupper: ${groups.length}`);
   console.log(`  Opgaver: ${tasks.length}`);
   console.log(`  Standard gruppekode: ${defaultPassword}`);
-  console.log(`  Admin: ${process.env.ADMIN_USERNAME ?? "admin"}`);
+  console.log("  Admin: canis");
 }
 
 main()

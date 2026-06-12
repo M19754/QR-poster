@@ -40,7 +40,7 @@ npm run dev
 
 | Rolle | Brugernavn | Kode |
 |-------|------------|------|
-| Admin | `canis` (fra `.env`) | `SKS` (fra `ADMIN_PASSWORD` i `.env`) |
+| Admin | `canis` | `SKS` |
 | Leder | `Grp. 1` | `E26` (skal skiftes ved første login) |
 
 ## URL-struktur
