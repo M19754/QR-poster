@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ContentItem, Task } from "@prisma/client";
 import { saveTaskContent } from "@/lib/actions/leader";
-import { getAcceptForType, getTypeLabel, type ContentFileType } from "@/lib/files";
+import { getAcceptForType, getTypeLabel, MAX_FILE_BYTES, detectFileType, type ContentFileType } from "@/lib/files";
 import {
   formatDanishDateTime,
   getItemVisibilityStatus,
@@ -217,6 +217,54 @@ export function LeaderTaskForm({
     setDrafts((prev) => prev.filter((_, i) => i !== index));
   }
 
+  async function uploadDraftFile(index: number, formData: FormData) {
+    const file = formData.get(`item_${index}_file`);
+    if (!(file instanceof File) || file.size === 0) return null;
+
+    const detected = detectFileType(file.name);
+    if (!detected) {
+      throw new Error(`Filtypen understøttes ikke: ${file.name}`);
+    }
+    if (file.size > MAX_FILE_BYTES[detected]) {
+      const maxMb = Math.round(MAX_FILE_BYTES[detected] / (1024 * 1024));
+      throw new Error(`Filen er for stor (max ${maxMb} MB).`);
+    }
+
+    try {
+      const { upload } = await import("@vercel/blob/client");
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      return {
+        url: blob.url,
+        fileName: file.name,
+        type: detected,
+      };
+    } catch {
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadData,
+      });
+
+      const payload = (await response.json()) as {
+        url?: string;
+        fileName?: string;
+        type?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Kunne ikke uploade filen.");
+      }
+
+      return payload;
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
@@ -228,14 +276,25 @@ export function LeaderTaskForm({
     formData.set("visible", visible ? "on" : "");
     formData.set("itemCount", String(drafts.length));
 
-    drafts.forEach((draft, index) => {
-      formData.set(`item_${index}_type`, draft.type);
-      if (draft.id) formData.set(`item_${index}_id`, draft.id);
-      if (draft.fileUrl) formData.set(`item_${index}_fileUrl`, draft.fileUrl);
-      if (draft.fileName) formData.set(`item_${index}_fileName`, draft.fileName);
-    });
-
     try {
+      for (let index = 0; index < drafts.length; index++) {
+        const draft = drafts[index];
+        formData.set(`item_${index}_type`, draft.type);
+        if (draft.id) formData.set(`item_${index}_id`, draft.id);
+
+        const uploaded = await uploadDraftFile(index, formData);
+        if (uploaded?.url) {
+          formData.set(`item_${index}_fileUrl`, uploaded.url);
+          formData.set(`item_${index}_fileName`, uploaded.fileName ?? "");
+          if (uploaded.type) formData.set(`item_${index}_type`, uploaded.type);
+        } else {
+          if (draft.fileUrl) formData.set(`item_${index}_fileUrl`, draft.fileUrl);
+          if (draft.fileName) formData.set(`item_${index}_fileName`, draft.fileName);
+        }
+
+        formData.delete(`item_${index}_file`);
+      }
+
       const result = await saveTaskContent(null, formData);
       if (result?.error) {
         setMessage({ type: "error", text: result.error });
@@ -243,24 +302,18 @@ export function LeaderTaskForm({
         setMessage({ type: "success", text: "Opgaven er gemt." });
         router.refresh();
       }
-    } catch {
+    } catch (error) {
       setMessage({
         type: "error",
-        text: "Kunne ikke gemme opgaven. Prøv igen.",
+        text: error instanceof Error ? error.message : "Kunne ikke gemme opgaven. Prøv igen.",
       });
     } finally {
       setPending(false);
     }
   }
 
-  const hasFileInputs = drafts.some((draft) => draft.type !== "text");
-
   return (
-    <form
-      onSubmit={handleSubmit}
-      encType={hasFileInputs ? "multipart/form-data" : undefined}
-      className="space-y-4"
-    >
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Card>
         <label className="flex items-center gap-3">
           <input

@@ -204,6 +204,10 @@ export async function saveTaskContent(
       await prisma.contentItem.create({
         data: { ...data, taskContentId: taskContent.id },
       });
+    } else if (type !== "text" && !fileUrl) {
+      return {
+        error: "Vælg en fil at uploade, eller tilføj tekst til elementet.",
+      };
     }
   }
 

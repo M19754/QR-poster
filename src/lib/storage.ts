@@ -15,6 +15,10 @@ export async function storeUploadedFile(
     return blob.url;
   }
 
+  if (process.env.VERCEL) {
+    throw new Error("BLOB_READ_WRITE_TOKEN mangler på Vercel.");
+  }
+
   const uploadsDir = path.join(process.cwd(), "public", "uploads");
   await mkdir(uploadsDir, { recursive: true });
   await writeFile(path.join(uploadsDir, storedName), buffer);
