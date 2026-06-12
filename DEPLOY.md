@@ -53,7 +53,6 @@ npx tsx prisma/seed.ts
 | Variabel | Værdi |
 |----------|-------|
 | `DATABASE_URL` | Supabase PostgreSQL URI |
-| `SESSION_SECRET` | Lang tilfældig streng |
 | `DEFAULT_GROUP_PASSWORD` | `E26` |
 | `NEXT_PUBLIC_BASE_URL` | `https://sks-løb.dk` |
 

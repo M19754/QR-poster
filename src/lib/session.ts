@@ -1,15 +1,12 @@
 import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "crypto";
+import { SESSION_SECRET as DEFAULT_SESSION_SECRET } from "@/lib/admin-auth";
 
 const ADMIN_COOKIE = "qr_admin_session";
 const LEADER_COOKIE = "qr_leader_session";
 
 function getSecret() {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) {
-    throw new Error("SESSION_SECRET mangler i miljøvariabler");
-  }
-  return secret;
+  return process.env.SESSION_SECRET ?? DEFAULT_SESSION_SECRET;
 }
 
 function sign(value: string) {

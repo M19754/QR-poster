@@ -28,9 +28,12 @@ async function requireLeader() {
   return group;
 }
 
-export async function leaderLogin(formData: FormData) {
+export async function leaderLogin(
+  _prevState: { error?: string } | null,
+  formData: FormData
+) {
   const username = String(formData.get("username") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+  const password = String(formData.get("password") ?? "").trim();
 
   const group = await prisma.group.findFirst({
     where: { username, active: true },

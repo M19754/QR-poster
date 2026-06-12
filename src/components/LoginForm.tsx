@@ -1,29 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { Alert, Button, Input, Label } from "@/components/ui";
+
+export type LoginState = { error?: string } | null;
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? "Logger ind…" : "Log ind"}
+    </Button>
+  );
+}
 
 export function LoginForm({
   action,
   usernamePlaceholder,
 }: {
-  action: (formData: FormData) => Promise<{ error?: string } | void>;
+  action: (prevState: LoginState, formData: FormData) => Promise<LoginState>;
   usernamePlaceholder?: string;
 }) {
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [state, formAction] = useActionState(action, null);
 
   return (
-    <form
-      action={async (formData) => {
-        setPending(true);
-        setError(null);
-        const result = await action(formData);
-        if (result?.error) setError(result.error);
-        setPending(false);
-      }}
-      className="space-y-4"
-    >
+    <form action={formAction} className="space-y-4">
       <div>
         <Label>Brugernavn</Label>
         <Input
@@ -42,10 +44,8 @@ export function LoginForm({
           autoComplete="current-password"
         />
       </div>
-      {error ? <Alert>{error}</Alert> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Logger ind…" : "Log ind"}
-      </Button>
+      {state?.error ? <Alert>{state.error}</Alert> : null}
+      <SubmitButton />
     </form>
   );
 }

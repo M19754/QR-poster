@@ -18,11 +18,17 @@ async function requireAdmin() {
   }
 }
 
-export async function adminLogin(formData: FormData) {
+export async function adminLogin(
+  _prevState: { error?: string } | null,
+  formData: FormData
+) {
   const username = String(formData.get("username") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+  const password = String(formData.get("password") ?? "").trim();
 
-  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+  if (
+    username.toLowerCase() !== ADMIN_USERNAME.toLowerCase() ||
+    password !== ADMIN_PASSWORD
+  ) {
     return { error: "Forkert brugernavn eller adgangskode." };
   }
 
