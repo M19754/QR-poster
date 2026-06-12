@@ -1,7 +1,7 @@
 import { issueSignedToken } from "@vercel/blob";
 import {
   handleUploadPresigned,
-  type HandleUploadBody,
+  type HandleUploadPresignedBody,
 } from "@vercel/blob/client";
 import { NextResponse, type NextRequest } from "next/server";
 import path from "path";
@@ -73,7 +73,7 @@ async function handleServerUpload(request: NextRequest) {
 
 /** Stor fil: presigned client-upload direkte til Blob (OIDC). */
 async function handlePresignedClientUpload(request: NextRequest) {
-  const body = (await request.json()) as HandleUploadBody;
+  const body = (await request.json()) as HandleUploadPresignedBody;
 
   const jsonResponse = await handleUploadPresigned({
     body,
