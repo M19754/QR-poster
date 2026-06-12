@@ -88,6 +88,14 @@ export async function getStaffSession(): Promise<StaffSession | null> {
     const groupId = await getLeaderGroupId();
     if (groupId) return { loginType: "gruppe", groupId };
   }
+
+  // Ældre sessioner uden loginType-cookie — reparer automatisk.
+  const groupId = await getLeaderGroupId();
+  if (groupId) {
+    await setLoginType("gruppe");
+    return { loginType: "gruppe", groupId };
+  }
+
   return null;
 }
 

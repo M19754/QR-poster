@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import type { ContentItem, Task } from "@prisma/client";
 import { saveTaskContent } from "@/lib/actions/leader";
 import { getAcceptForType, getTypeLabel, type ContentFileType } from "@/lib/files";
@@ -25,6 +25,8 @@ type ItemDraft = {
   untilDate: string;
   untilTime: string;
 };
+
+type SaveState = { error?: string; success?: boolean } | null;
 
 function toDraft(item?: ContentItem): ItemDraft {
   const from = item?.visibleFrom ?? null;
@@ -170,6 +172,41 @@ function ScheduleFields({
   );
 }
 
+function DraftHiddenFields({ drafts }: { drafts: ItemDraft[] }) {
+  return (
+    <>
+      <input type="hidden" name="itemCount" value={String(drafts.length)} />
+      {drafts.map((draft, index) => (
+        <div key={draft.id ?? `new-${index}`} className="hidden" aria-hidden>
+          {draft.id ? <input type="hidden" name={`item_${index}_id`} value={draft.id} /> : null}
+          <input type="hidden" name={`item_${index}_type`} value={draft.type} />
+          <input type="hidden" name={`item_${index}_body`} value={draft.body} />
+          {draft.fileUrl ? (
+            <input type="hidden" name={`item_${index}_fileUrl`} value={draft.fileUrl} />
+          ) : null}
+          {draft.fileName ? (
+            <input type="hidden" name={`item_${index}_fileName`} value={draft.fileName} />
+          ) : null}
+          <input
+            type="hidden"
+            name={`item_${index}_useSchedule`}
+            value={draft.useSchedule ? "on" : ""}
+          />
+          <input
+            type="hidden"
+            name={`item_${index}_showOpenTime`}
+            value={draft.showOpenTimeToParticipants ? "on" : ""}
+          />
+          <input type="hidden" name={`item_${index}_fromDate`} value={draft.fromDate} />
+          <input type="hidden" name={`item_${index}_fromTime`} value={draft.fromTime} />
+          <input type="hidden" name={`item_${index}_untilDate`} value={draft.untilDate} />
+          <input type="hidden" name={`item_${index}_untilTime`} value={draft.untilTime} />
+        </div>
+      ))}
+    </>
+  );
+}
+
 export function LeaderTaskForm({
   task,
   visibleToParticipants,
@@ -183,8 +220,10 @@ export function LeaderTaskForm({
     items.length > 0 ? items.map(toDraft) : [toDraft()]
   );
   const [visible, setVisible] = useState(visibleToParticipants);
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [state, formAction, pending] = useActionState<SaveState, FormData>(
+    saveTaskContent,
+    null
+  );
 
   function updateDraft(index: number, patch: Partial<ItemDraft>) {
     setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
@@ -198,38 +237,18 @@ export function LeaderTaskForm({
     setDrafts((prev) => prev.filter((_, i) => i !== index));
   }
 
+  const message = state?.error
+    ? state.error
+    : state?.success
+      ? "Opgaven er gemt."
+      : null;
+
   return (
-    <form
-      action={async (formData) => {
-        setPending(true);
-        setMessage(null);
-        formData.set("taskId", task.id);
-        formData.set("visible", visible ? "on" : "");
-        formData.set("itemCount", String(drafts.length));
+    <form action={formAction} encType="multipart/form-data" className="space-y-4">
+      <input type="hidden" name="taskId" value={task.id} />
+      <input type="hidden" name="visible" value={visible ? "on" : ""} />
+      <DraftHiddenFields drafts={drafts} />
 
-        drafts.forEach((draft, index) => {
-          if (draft.id) formData.set(`item_${index}_id`, draft.id);
-          formData.set(`item_${index}_type`, draft.type);
-          formData.set(`item_${index}_body`, draft.body);
-          if (draft.fileUrl) formData.set(`item_${index}_fileUrl`, draft.fileUrl);
-          if (draft.fileName) formData.set(`item_${index}_fileName`, draft.fileName);
-          if (draft.useSchedule) formData.set(`item_${index}_useSchedule`, "on");
-          if (draft.showOpenTimeToParticipants) {
-            formData.set(`item_${index}_showOpenTime`, "on");
-          }
-          formData.set(`item_${index}_fromDate`, draft.fromDate);
-          formData.set(`item_${index}_fromTime`, draft.fromTime);
-          formData.set(`item_${index}_untilDate`, draft.untilDate);
-          formData.set(`item_${index}_untilTime`, draft.untilTime);
-        });
-
-        const result = await saveTaskContent(formData);
-        if (result?.error) setMessage(result.error);
-        else setMessage("Opgaven er gemt.");
-        setPending(false);
-      }}
-      className="space-y-4"
-    >
       <Card>
         <label className="flex items-center gap-3">
           <input
@@ -315,7 +334,7 @@ export function LeaderTaskForm({
       </div>
 
       {message ? (
-        <Alert variant={message.includes("gemt") ? "success" : "error"}>{message}</Alert>
+        <Alert variant={state?.success ? "success" : "error"}>{message}</Alert>
       ) : null}
 
       <Button type="submit" disabled={pending}>

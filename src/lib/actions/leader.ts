@@ -16,17 +16,27 @@ import { getFormField } from "@/lib/form-data";
 import { parseDanishDateTimeInput } from "@/lib/visibility";
 import { detectFileType, MAX_FILE_BYTES } from "@/lib/files";
 
-async function requireLeader() {
+import type { Group } from "@prisma/client";
+
+type LeaderActionError = { error: string };
+
+async function requireLeader(): Promise<Group | LeaderActionError> {
   const session = await getStaffSession();
-  if (!session || session.loginType !== "gruppe") redirect("/login");
+  if (!session || session.loginType !== "gruppe") {
+    return { error: "Du er logget ud. Log ind igen som gruppe." };
+  }
 
   const group = await prisma.group.findUnique({ where: { id: session.groupId } });
   if (!group || !group.active) {
     await clearStaffSession();
-    redirect("/login");
+    return { error: "Gruppen er ikke aktiv. Log ind igen." };
   }
 
   return group;
+}
+
+function isLeaderError(result: Group | LeaderActionError): result is LeaderActionError {
+  return "error" in result;
 }
 
 export async function leaderLogin(
@@ -59,7 +69,9 @@ export async function leaderLogout() {
 }
 
 export async function changeLeaderPassword(formData: FormData) {
-  const group = await requireLeader();
+  const leader = await requireLeader();
+  if (isLeaderError(leader)) return leader;
+  const group = leader;
   const newPassword = String(formData.get("newPassword") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
@@ -82,7 +94,9 @@ export async function changeLeaderPassword(formData: FormData) {
 }
 
 export async function updateTaskVisibility(formData: FormData) {
-  const group = await requireLeader();
+  const leader = await requireLeader();
+  if (isLeaderError(leader)) return leader;
+  const group = leader;
   const taskId = String(formData.get("taskId") ?? "");
   const visible = formData.get("visible") === "true";
 
@@ -100,8 +114,13 @@ export async function updateTaskVisibility(formData: FormData) {
   revalidatePath(`/dashboard/opgave/${taskId}`);
 }
 
-export async function saveTaskContent(formData: FormData) {
-  const group = await requireLeader();
+export async function saveTaskContent(
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData
+) {
+  const leader = await requireLeader();
+  if (isLeaderError(leader)) return { error: leader.error };
+  const group = leader;
   const taskId = String(formData.get("taskId") ?? "");
   const visible = formData.get("visible") === "on";
 
@@ -156,7 +175,11 @@ export async function saveTaskContent(formData: FormData) {
       const ext = path.extname(file.name) || ".bin";
       const storedName = `${uuidv4()}${ext}`;
       const buffer = Buffer.from(await file.arrayBuffer());
-      fileUrl = await storeUploadedFile(storedName, buffer);
+      try {
+        fileUrl = await storeUploadedFile(storedName, buffer);
+      } catch {
+        return { error: "Kunne ikke gemme filen. Tjek at Blob-lager er sat op på Vercel." };
+      }
       fileName = file.name;
       resolvedType = detected;
     }
@@ -196,4 +219,5 @@ export async function saveTaskContent(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/opgave/${taskId}`);
   revalidatePath(`/o/${taskId}`);
+  return { success: true };
 }
