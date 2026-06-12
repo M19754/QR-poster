@@ -20,6 +20,7 @@ const ALLOWED_CONTENT_TYPES = [
   "video/mp4",
   "video/webm",
   "video/quicktime",
+  "video/*",
 ];
 
 async function requireGroupUploadAccess() {
@@ -76,32 +77,49 @@ async function handleServerUpload(request: NextRequest) {
 async function handlePresignedClientUpload(request: NextRequest) {
   const body = (await request.json()) as HandleUploadPresignedBody;
 
-  const jsonResponse = await handleUploadPresigned({
-    body,
-    request,
-    getSignedToken: async (pathname, clientPayload, multipart) => {
-      await requireGroupUploadAccess();
+  try {
+    const jsonResponse = await handleUploadPresigned({
+      body,
+      request,
+      getSignedToken: async (pathname, clientPayload, multipart) => {
+        await requireGroupUploadAccess();
 
-      const issued = await issueSignedToken({
-        pathname: pathname.startsWith("uploads/") ? pathname : `uploads/${pathname}`,
-        operations: ["put"],
-        allowedContentTypes: ALLOWED_CONTENT_TYPES,
-        maximumSizeInBytes: 25 * 1024 * 1024,
-      });
+        if (!pathname.startsWith("uploads/")) {
+          throw new Error("Ugyldig upload-sti.");
+        }
 
-      return {
-        token: issued,
-        urlOptions: {
-          access: BLOB_ACCESS,
-          addRandomSuffix: !multipart,
-          tokenPayload: clientPayload ?? undefined,
-        },
-      };
-    },
-    onUploadCompleted: async () => {},
-  });
+        const issued = await issueSignedToken({
+          pathname,
+          operations: ["put"],
+          allowedContentTypes: ALLOWED_CONTENT_TYPES,
+          maximumSizeInBytes: 25 * 1024 * 1024,
+        });
 
-  return NextResponse.json(jsonResponse);
+        return {
+          token: issued,
+          urlOptions: {
+            access: BLOB_ACCESS,
+            addRandomSuffix: !multipart,
+            tokenPayload: clientPayload ?? undefined,
+          },
+        };
+      },
+      onUploadCompleted: async () => {},
+    });
+
+    return NextResponse.json(jsonResponse);
+  } catch (error) {
+    console.error("Presigned upload failed:", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Kunne ikke forberede fil-upload.",
+      },
+      { status: 400 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {

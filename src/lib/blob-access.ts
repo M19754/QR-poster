@@ -1,6 +1,19 @@
 /** Matcher qr-poster-sks-blob (private store på Vercel). */
 export const BLOB_ACCESS = "private" as const;
 
+const UPLOAD_PREFIX = "uploads/";
+
+export function buildBlobUploadPathname(filename: string): string {
+  const ext = filename.includes(".")
+    ? filename.slice(filename.lastIndexOf(".")).toLowerCase()
+    : "";
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${UPLOAD_PREFIX}${id}${ext}`;
+}
+
 export function extractBlobPathname(fileUrl: string): string | null {
   try {
     const url = new URL(fileUrl);

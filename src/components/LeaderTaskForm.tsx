@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ContentItem, Task } from "@prisma/client";
 import { saveTaskContent } from "@/lib/actions/leader";
-import { BLOB_ACCESS } from "@/lib/blob-access";
+import { BLOB_ACCESS, buildBlobUploadPathname } from "@/lib/blob-access";
 import { getAcceptForType, getTypeLabel, MAX_FILE_BYTES, detectFileType, type ContentFileType } from "@/lib/files";
 import {
   formatDanishDateTime,
@@ -231,14 +231,18 @@ export function LeaderTaskForm({
       throw new Error(`Filen er for stor (max ${maxMb} MB).`);
     }
 
-    // Store filer (>4 MB): direkte til Blob via presigned URL (OIDC).
-    if (file.size > 4 * 1024 * 1024) {
+    // Store filer (>4 MB) og video: presigned upload direkte til Blob.
+    const usePresignedUpload =
+      detected === "video" || file.size > 4 * 1024 * 1024;
+
+    if (usePresignedUpload) {
       const { uploadPresigned } = await import("@vercel/blob/client");
-      const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
-      const pathname = `upload-${Date.now()}-${index}${ext}`;
+      const pathname = buildBlobUploadPathname(file.name);
       const blob = await uploadPresigned(pathname, file, {
         access: BLOB_ACCESS,
         handleUploadUrl: "/api/upload",
+        multipart: file.size > 5 * 1024 * 1024,
+        contentType: file.type || undefined,
       });
       return {
         url: blob.url,
