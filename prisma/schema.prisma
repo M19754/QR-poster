@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Camp {
+  id                String    @id @default(uuid())
+  name              String
+  active            Boolean   @default(true)
+  archivedAt        DateTime?
+  participantEpoch  Int       @default(1)
+  defaultPassword   String    @default("E26")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  groups Group[]
+  tasks  Task[]
+}
+
+model Group {
+  id                  String   @id @default(uuid())
+  campId              String
+  name                String
+  username            String
+  passwordHash        String
+  mustChangePassword  Boolean  @default(true)
+  sortOrder           Int      @default(0)
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  camp         Camp          @relation(fields: [campId], references: [id], onDelete: Cascade)
+  taskContents TaskContent[]
+
+  @@unique([campId, username])
+}
+
+model Task {
+  id        String   @id @default(uuid())
+  campId    String
+  title     String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  camp         Camp          @relation(fields: [campId], references: [id], onDelete: Cascade)
+  taskContents TaskContent[]
+}
+
+model TaskContent {
+  id                    String   @id @default(uuid())
+  taskId                String
+  groupId               String
+  visibleToParticipants Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
+
+  task   Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  group  Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  items  ContentItem[]
+
+  @@unique([taskId, groupId])
+}
+
+model ContentItem {
+  id             String    @id @default(uuid())
+  taskContentId  String
+  type           String
+  body           String?
+  fileUrl        String?
+  fileName       String?
+  useSchedule                 Boolean   @default(false)
+  showOpenTimeToParticipants  Boolean   @default(true)
+  visibleFrom                 DateTime?
+  visibleUntil                DateTime?
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  taskContent TaskContent @relation(fields: [taskContentId], references: [id], onDelete: Cascade)
+}

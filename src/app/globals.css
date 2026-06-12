@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+:root {
+  --brand-orange: #f26d39;
+  --brand-dark: #2c2e3b;
+  --bg: #faf8f6;
+  --card: #ffffff;
+  --text: #2c2e3b;
+  --muted: #6b6e7d;
+  --primary: #2c2e3b;
+  --primary-dark: #1f212b;
+  --accent: #f26d39;
+  --accent-dark: #d95a28;
+  --danger: #c0392b;
+  --border: #e8e4e0;
+  --link: #d95a28;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Deltager — mobil, let */
+.theme-participant {
+  --bg: #fffdfb;
+  --card: #ffffff;
+  --text: #2c2e3b;
+  --muted: #7a7d8c;
+  --primary: #f26d39;
+  --primary-dark: #d95a28;
+  --accent: #f26d39;
+  --border: #f0e8e2;
+  --link: #d95a28;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.theme-participant .participant-header {
+  background: var(--brand-orange);
+  color: var(--brand-dark);
+}
+
+/* Leder / admin — mørk på orange */
+.theme-staff {
+  --bg: #fff8f4;
+  --card: #ffffff;
+  --text: #2c2e3b;
+  --muted: #6b6e7d;
+  --primary: #2c2e3b;
+  --primary-dark: #1f212b;
+  --accent: #f26d39;
+  --border: #f0ddd4;
+  --link: #d95a28;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.theme-staff .staff-header {
+  background: var(--brand-orange);
+  color: var(--brand-dark);
+}
+
+/* Leder-login — orange på mørk (inverteret) */
+.theme-leader {
+  --bg: #2c2e3b;
+  --card: #383a4a;
+  --text: #ffffff;
+  --muted: #b8bac6;
+  --primary: #f26d39;
+  --primary-dark: #d95a28;
+  --accent: #f26d39;
+  --border: #4a4d5e;
+  --link: #f26d39;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.theme-leader a:hover {
+  color: #ffb08a;
+}
+
+@media print {
+  .staff-header,
+  .brand-header,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+}
