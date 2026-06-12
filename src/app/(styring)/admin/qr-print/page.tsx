@@ -1,37 +1,42 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { adminLogout } from "@/lib/actions/admin";
+import { AdminShell } from "@/components/admin/AdminShell";
 import { prisma, getActiveCamp } from "@/lib/db";
-import { ensureAdminSettings } from "@/lib/admin-settings";
-import { isAdminAuthenticated } from "@/lib/session";
+import { requireAdminReady } from "@/lib/admin-guard";
 import { getTaskPublicUrl } from "@/lib/urls";
 import { PrintButton } from "@/components/PrintButton";
-import { StaffPageShell } from "@/components/layouts/StaffLayout";
 import { Button } from "@/components/ui";
 
 export default async function QrPrintPage() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
-
-  const adminSettings = await ensureAdminSettings();
-  if (adminSettings.mustChangeCredentials) redirect("/admin/skift-login");
+  await requireAdminReady();
 
   const camp = await getActiveCamp();
-  if (!camp) redirect("/admin");
+  if (!camp) redirect("/admin/forside");
 
   const tasks = await prisma.task.findMany({
     where: { campId: camp.id, active: true },
     orderBy: { sortOrder: "asc" },
+    select: { id: true, title: true },
   });
 
   return (
-    <StaffPageShell
+    <AdminShell
       title="QR-plakater"
       subtitle={`${camp.name} · ${tasks.length} opgaver`}
       actions={
-        <Link href="/admin">
-          <Button type="button" variant="secondary">
-            ← Tilbage
-          </Button>
-        </Link>
+        <>
+          <Link href="/admin/forside">
+            <Button type="button" variant="secondary">
+              ← Forside
+            </Button>
+          </Link>
+          <form action={adminLogout}>
+            <Button type="submit" variant="secondary">
+              Log ud
+            </Button>
+          </form>
+        </>
       }
     >
       <div className="mb-6 print:hidden">
@@ -59,6 +64,6 @@ export default async function QrPrintPage() {
           );
         })}
       </div>
-    </StaffPageShell>
+    </AdminShell>
   );
 }

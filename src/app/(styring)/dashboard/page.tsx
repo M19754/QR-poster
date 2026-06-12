@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getLeaderGroupId } from "@/lib/session";
+import { getLeaderGroupId, isAdminAuthenticated } from "@/lib/session";
 import { StaffPageShell } from "@/components/layouts/StaffLayout";
 import { Badge, Button, Card } from "@/components/ui";
 import { leaderLogout } from "@/lib/actions/leader";
@@ -9,6 +9,8 @@ import { leaderLogout } from "@/lib/actions/leader";
 export default async function DashboardPage() {
   const groupId = await getLeaderGroupId();
   if (!groupId) redirect("/login");
+
+  const isAdmin = await isAdminAuthenticated();
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -40,11 +42,20 @@ export default async function DashboardPage() {
       title="Leder-dashboard"
       subtitle={`${group.name} · ${group.camp.name}`}
       actions={
-        <form action={leaderLogout}>
-          <Button type="submit" variant="secondary">
-            Log ud
-          </Button>
-        </form>
+        <>
+          {isAdmin ? (
+            <Link href="/admin/forside">
+              <Button type="button" variant="accent">
+                Admin
+              </Button>
+            </Link>
+          ) : null}
+          <form action={leaderLogout}>
+            <Button type="submit" variant="secondary">
+              Log ud
+            </Button>
+          </form>
+        </>
       }
     >
       <div className="grid gap-3">

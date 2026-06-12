@@ -5,53 +5,26 @@ import { redirect } from "next/navigation";
 import { prisma, getActiveCamp } from "@/lib/db";
 import { cloneCampStructure } from "@/lib/camp";
 import { applyCampImport } from "@/lib/apply-camp-import";
+import { requireAdminAuth, requireAdminReady } from "@/lib/admin-guard";
 import { ensureAdminSettings } from "@/lib/admin-settings";
 import { getFormField } from "@/lib/form-data";
 import { parseImportFile } from "@/lib/import-camp";
-import { verifyPassword, hashPassword } from "@/lib/password";
+import { hashPassword } from "@/lib/password";
 import {
-  isAdminAuthenticated,
-  setAdminSession,
   clearAdminSession,
+  clearLeaderSession,
 } from "@/lib/session";
 
-async function requireAdmin() {
-  if (!(await isAdminAuthenticated())) {
-    redirect("/admin/login");
-  }
-}
-
-async function requireAdminReady() {
-  await requireAdmin();
-  const settings = await ensureAdminSettings();
-  if (settings.mustChangeCredentials) {
-    redirect("/admin/skift-login");
-  }
-}
-
-export async function adminLogin(formData: FormData) {
-  const settings = await ensureAdminSettings();
-  const username = getFormField(formData, "username").trim();
-  const password = getFormField(formData, "password").trim();
-
-  if (
-    username !== settings.username ||
-    !(await verifyPassword(password, settings.passwordHash))
-  ) {
-    redirect("/admin/login?error=invalid");
-  }
-
-  await setAdminSession();
-  if (settings.mustChangeCredentials) {
-    redirect("/admin/skift-login");
-  }
-  redirect("/admin");
+function revalidateAdmin() {
+  revalidatePath("/admin/forside");
+  revalidatePath("/admin/grupper");
+  revalidatePath("/admin/opgaver");
 }
 
 export async function changeAdminCredentials(formData: FormData) {
-  await requireAdmin();
+  await requireAdminAuth();
   const settings = await ensureAdminSettings();
-  if (!settings.mustChangeCredentials) redirect("/admin");
+  if (!settings.mustChangeCredentials) redirect("/admin/forside");
 
   const username = getFormField(formData, "username").trim();
   const newPassword = getFormField(formData, "newPassword").trim();
@@ -76,12 +49,13 @@ export async function changeAdminCredentials(formData: FormData) {
     },
   });
 
-  redirect("/admin");
+  redirect("/admin/forside");
 }
 
 export async function adminLogout() {
   await clearAdminSession();
-  redirect("/admin/login");
+  await clearLeaderSession();
+  redirect("/login");
 }
 
 export async function createGroup(formData: FormData) {
@@ -113,7 +87,7 @@ export async function createGroup(formData: FormData) {
     });
   }
 
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function updateGroup(formData: FormData) {
@@ -130,7 +104,7 @@ export async function updateGroup(formData: FormData) {
     data: { name, username, active },
   });
 
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function deleteGroup(formData: FormData) {
@@ -139,7 +113,7 @@ export async function deleteGroup(formData: FormData) {
   if (!id) return;
 
   await prisma.group.delete({ where: { id } });
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function createTask(formData: FormData) {
@@ -165,7 +139,7 @@ export async function createTask(formData: FormData) {
     });
   }
 
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function updateTask(formData: FormData) {
@@ -181,7 +155,7 @@ export async function updateTask(formData: FormData) {
     data: { title, active },
   });
 
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function deleteTask(formData: FormData) {
@@ -190,7 +164,7 @@ export async function deleteTask(formData: FormData) {
   if (!id) return;
 
   await prisma.task.delete({ where: { id } });
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function updateCampSettings(formData: FormData) {
@@ -209,7 +183,7 @@ export async function updateCampSettings(formData: FormData) {
     },
   });
 
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function resetGroupPassword(formData: FormData) {
@@ -224,7 +198,7 @@ export async function resetGroupPassword(formData: FormData) {
     data: { passwordHash, mustChangePassword: true },
   });
 
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function resetAllGroupPasswords() {
@@ -238,7 +212,7 @@ export async function resetAllGroupPasswords() {
     data: { passwordHash, mustChangePassword: true },
   });
 
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function resetAllParticipants() {
@@ -251,23 +225,23 @@ export async function resetAllParticipants() {
     data: { participantEpoch: camp.participantEpoch + 1 },
   });
 
-  revalidatePath("/admin");
+  revalidateAdmin();
 }
 
 export async function importCampStructure(formData: FormData) {
   await requireAdminReady();
   const camp = await getActiveCamp();
-  if (!camp) redirect("/admin?importError=no-camp");
+  if (!camp) redirect("/admin/forside?importError=no-camp");
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    redirect("/admin?importError=no-file");
+    redirect("/admin/forside?importError=no-file");
   }
 
   const text = await file.text();
   const parsed = parseImportFile(file.name, text);
   if (!parsed.ok) {
-    redirect(`/admin?importError=${encodeURIComponent(parsed.error)}`);
+    redirect(`/admin/forside?importError=${encodeURIComponent(parsed.error)}`);
   }
 
   const mode = formData.get("replace") === "on" ? "replace" : "merge";
@@ -287,7 +261,7 @@ export async function importCampStructure(formData: FormData) {
     .filter(Boolean)
     .join(", ");
 
-  redirect(`/admin?importOk=${encodeURIComponent(summary || "Import fuldført")}`);
+  redirect(`/admin/forside?importOk=${encodeURIComponent(summary || "Import fuldført")}`);
 }
 
 export async function startNewCamp(formData: FormData) {
@@ -326,6 +300,6 @@ export async function startNewCamp(formData: FormData) {
     await cloneCampStructure(newCamp, groups, tasks);
   }
 
-  revalidatePath("/admin");
+  revalidateAdmin();
   revalidatePath("/admin/qr-print");
 }

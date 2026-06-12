@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { Card } from "@/components/ui";
+import { Card, Button } from "@/components/ui";
 
 export default function HomePage() {
   return (
@@ -17,29 +17,15 @@ export default function HomePage() {
       </header>
 
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
-            <h2 className="mb-2 text-lg font-semibold">Leder</h2>
-            <p className="mb-4 text-sm text-[var(--muted)]">
-              Log ind med dit gruppe-login og redigér opgaver.
-            </p>
-            <Link href="/login" className="font-semibold">
-              Gå til leder-login →
-            </Link>
-          </Card>
-          <Card>
-            <h2 className="mb-2 text-lg font-semibold">Admin</h2>
-            <p className="mb-4 text-sm text-[var(--muted)]">
-              Administrér grupper, opgaver og lejr-indstillinger.
-            </p>
-            <Link href="/admin/login" className="font-semibold">
-              Gå til admin →
-            </Link>
-          </Card>
-        </div>
-        <p className="mt-6 text-center text-sm text-[var(--muted)]">
-          Deltagere åbner opgaver via QR-link — ikke fra denne side.
-        </p>
+        <Card className="text-center">
+          <h2 className="mb-2 text-lg font-semibold">Log ind</h2>
+          <p className="mb-4 text-sm text-[var(--muted)]">
+            Admin og ledere bruger samme login-side. Deltagere åbner opgaver via QR-link.
+          </p>
+          <Link href="/login">
+            <Button type="button">Gå til login →</Button>
+          </Link>
+        </Card>
       </div>
     </>
   );

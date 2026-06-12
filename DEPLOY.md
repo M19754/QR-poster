@@ -78,7 +78,7 @@ I webhotellets DNS-panel:
 
 ## Tjekliste efter deploy
 
-- [ ] Admin-login: `1234` / `1234` på `/admin/login`
+- [ ] Admin-login: `1234` / `1234` på `/login`
 - [ ] Skift login ved første gang
 - [ ] Leder-login: `Grp. 1` / `E26` på `/login`
 - [ ] Deltager-link `/o/[id]` virker på mobil

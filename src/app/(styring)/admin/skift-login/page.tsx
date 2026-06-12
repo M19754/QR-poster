@@ -18,10 +18,10 @@ export default async function AdminChangeCredentialsPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  if (!(await isAdminAuthenticated())) redirect("/login");
 
   const settings = await ensureAdminSettings();
-  if (!settings.mustChangeCredentials) redirect("/admin");
+  if (!settings.mustChangeCredentials) redirect("/admin/forside");
 
   const { error } = await searchParams;
 
