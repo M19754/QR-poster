@@ -1,4 +1,8 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { issueSignedToken } from "@vercel/blob";
+import {
+  handleUploadPresigned,
+  type HandleUploadBody,
+} from "@vercel/blob/client";
 import { NextResponse, type NextRequest } from "next/server";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
@@ -24,8 +28,12 @@ async function requireGroupUploadAccess() {
   }
 }
 
-/** Lokal upload uden Blob (multipart). */
-async function handleLocalUpload(request: NextRequest) {
+function hasBlobOidc() {
+  return Boolean(process.env.BLOB_STORE_ID);
+}
+
+/** Lokal / lille fil: upload via server (max ~4,5 MB på Vercel). */
+async function handleServerUpload(request: NextRequest) {
   await requireGroupUploadAccess();
 
   const formData = await request.formData();
@@ -63,20 +71,29 @@ async function handleLocalUpload(request: NextRequest) {
   });
 }
 
-/** Vercel Blob client-upload (store direkte fra browser). */
-async function handleBlobUpload(request: NextRequest) {
+/** Stor fil: presigned client-upload direkte til Blob (OIDC). */
+async function handlePresignedClientUpload(request: NextRequest) {
   const body = (await request.json()) as HandleUploadBody;
 
-  const jsonResponse = await handleUpload({
+  const jsonResponse = await handleUploadPresigned({
     body,
     request,
-    onBeforeGenerateToken: async () => {
+    getSignedToken: async (pathname, clientPayload, multipart) => {
       await requireGroupUploadAccess();
-      return {
+
+      const issued = await issueSignedToken({
+        pathname: pathname.startsWith("uploads/") ? pathname : `uploads/${pathname}`,
+        operations: ["put"],
         allowedContentTypes: ALLOWED_CONTENT_TYPES,
         maximumSizeInBytes: 25 * 1024 * 1024,
-        addRandomSuffix: true,
-        tokenPayload: JSON.stringify({ scope: "group-upload" }),
+      });
+
+      return {
+        token: issued,
+        urlOptions: {
+          addRandomSuffix: !multipart,
+          tokenPayload: clientPayload ?? undefined,
+        },
       };
     },
     onUploadCompleted: async () => {},
@@ -90,21 +107,26 @@ export async function POST(request: NextRequest) {
 
   try {
     if (contentType.includes("multipart/form-data")) {
-      return await handleLocalUpload(request);
+      return await handleServerUpload(request);
     }
 
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    if (!hasBlobOidc()) {
       return NextResponse.json(
         { error: "Fil-upload kræver Blob-lager på Vercel. Kontakt admin." },
         { status: 500 }
       );
     }
 
-    return await handleBlobUpload(request);
+    return await handlePresignedClientUpload(request);
   } catch (error) {
     console.error("Upload failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Kunne ikke uploade filen." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Kunne ikke uploade filen. Prøv igen.",
+      },
       { status: 500 }
     );
   }

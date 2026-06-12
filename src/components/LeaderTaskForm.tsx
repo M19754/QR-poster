@@ -230,9 +230,12 @@ export function LeaderTaskForm({
       throw new Error(`Filen er for stor (max ${maxMb} MB).`);
     }
 
-    try {
-      const { upload } = await import("@vercel/blob/client");
-      const blob = await upload(file.name, file, {
+    // Store filer (>4 MB): direkte til Blob via presigned URL (OIDC).
+    if (file.size > 4 * 1024 * 1024) {
+      const { uploadPresigned } = await import("@vercel/blob/client");
+      const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+      const pathname = `upload-${Date.now()}-${index}${ext}`;
+      const blob = await uploadPresigned(pathname, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
       });
@@ -241,28 +244,28 @@ export function LeaderTaskForm({
         fileName: file.name,
         type: detected,
       };
-    } catch {
-      const uploadData = new FormData();
-      uploadData.append("file", file);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: uploadData,
-      });
-
-      const payload = (await response.json()) as {
-        url?: string;
-        fileName?: string;
-        type?: string;
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Kunne ikke uploade filen.");
-      }
-
-      return payload;
     }
+
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: uploadData,
+    });
+
+    const payload = (await response.json()) as {
+      url?: string;
+      fileName?: string;
+      type?: string;
+      error?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Kunne ikke uploade filen.");
+    }
+
+    return payload;
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
