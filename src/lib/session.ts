@@ -1,9 +1,11 @@
 import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "crypto";
 import { SESSION_SECRET as DEFAULT_SESSION_SECRET } from "@/lib/admin-auth";
+import type { LoginType, StaffSession } from "@/lib/login-type";
 
 const ADMIN_COOKIE = "qr_admin_session";
 const LEADER_COOKIE = "qr_leader_session";
+const LOGIN_TYPE_COOKIE = "qr_login_type";
 
 function getSecret() {
   return process.env.SESSION_SECRET ?? DEFAULT_SESSION_SECRET;
@@ -46,11 +48,47 @@ export async function setAdminSession() {
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
+  await setLoginType("admin");
 }
 
 export async function clearAdminSession() {
   const cookieStore = await cookies();
   cookieStore.delete(ADMIN_COOKIE);
+}
+
+export async function setLoginType(loginType: LoginType) {
+  const cookieStore = await cookies();
+  cookieStore.set(LOGIN_TYPE_COOKIE, loginType, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+}
+
+export async function clearLoginType() {
+  const cookieStore = await cookies();
+  cookieStore.delete(LOGIN_TYPE_COOKIE);
+}
+
+export async function getLoginType(): Promise<LoginType | null> {
+  const cookieStore = await cookies();
+  const value = cookieStore.get(LOGIN_TYPE_COOKIE)?.value;
+  if (value === "admin" || value === "gruppe") return value;
+  return null;
+}
+
+export async function getStaffSession(): Promise<StaffSession | null> {
+  const loginType = await getLoginType();
+  if (loginType === "admin" && (await isAdminAuthenticated())) {
+    return { loginType: "admin" };
+  }
+  if (loginType === "gruppe") {
+    const groupId = await getLeaderGroupId();
+    if (groupId) return { loginType: "gruppe", groupId };
+  }
+  return null;
 }
 
 export async function isAdminAuthenticated() {
@@ -69,11 +107,18 @@ export async function setLeaderSession(groupId: string) {
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
+  await setLoginType("gruppe");
 }
 
 export async function clearLeaderSession() {
   const cookieStore = await cookies();
   cookieStore.delete(LEADER_COOKIE);
+}
+
+export async function clearStaffSession() {
+  await clearAdminSession();
+  await clearLeaderSession();
+  await clearLoginType();
 }
 
 export async function getLeaderGroupId() {

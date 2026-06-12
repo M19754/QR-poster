@@ -11,8 +11,7 @@ import { getFormField } from "@/lib/form-data";
 import { parseImportFile } from "@/lib/import-camp";
 import { hashPassword } from "@/lib/password";
 import {
-  clearAdminSession,
-  clearLeaderSession,
+  clearStaffSession,
 } from "@/lib/session";
 
 function revalidateAdmin() {
@@ -53,8 +52,7 @@ export async function changeAdminCredentials(formData: FormData) {
 }
 
 export async function adminLogout() {
-  await clearAdminSession();
-  await clearLeaderSession();
+  await clearStaffSession();
   redirect("/login");
 }
 

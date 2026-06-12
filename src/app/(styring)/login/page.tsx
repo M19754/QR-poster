@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { staffLogin } from "@/lib/actions/staff";
-import { LeaderAuthShell } from "@/components/layouts/StaffLayout";
+import { StaffAuthShell } from "@/components/layouts/StaffAuthShell";
 import { Alert, Button, Card, Input, Label } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +12,11 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <LeaderAuthShell
+    <StaffAuthShell
       title="Log ind"
-      subtitle="Admin eller leder — samme login-side"
+      subtitle="Admin eller gruppe — samme login"
     >
-      <Card className="w-full max-w-md border-[var(--border)]">
+      <Card className="w-full max-w-md">
         <form action={staffLogin} className="space-y-4">
           <div>
             <Label>Brugernavn</Label>
@@ -42,10 +41,7 @@ export default async function LoginPage({
             Log ind
           </Button>
         </form>
-        <p className="mt-4 text-center text-sm text-[var(--muted)]">
-          <Link href="/">← Tilbage til forsiden</Link>
-        </p>
       </Card>
-    </LeaderAuthShell>
+    </StaffAuthShell>
   );
 }

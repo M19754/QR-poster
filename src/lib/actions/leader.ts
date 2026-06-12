@@ -8,21 +8,21 @@ import { storeUploadedFile } from "@/lib/storage";
 import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import {
-  getLeaderGroupId,
+  getStaffSession,
   setLeaderSession,
-  clearLeaderSession,
+  clearStaffSession,
 } from "@/lib/session";
 import { getFormField } from "@/lib/form-data";
 import { parseDanishDateTimeInput } from "@/lib/visibility";
 import { detectFileType, MAX_FILE_BYTES } from "@/lib/files";
 
 async function requireLeader() {
-  const groupId = await getLeaderGroupId();
-  if (!groupId) redirect("/login");
+  const session = await getStaffSession();
+  if (!session || session.loginType !== "gruppe") redirect("/login");
 
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
+  const group = await prisma.group.findUnique({ where: { id: session.groupId } });
   if (!group || !group.active) {
-    await clearLeaderSession();
+    await clearStaffSession();
     redirect("/login");
   }
 
@@ -54,7 +54,7 @@ export async function leaderLogin(
 }
 
 export async function leaderLogout() {
-  await clearLeaderSession();
+  await clearStaffSession();
   redirect("/login");
 }
 

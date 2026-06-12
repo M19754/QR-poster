@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { ensureAdminSettings } from "@/lib/admin-settings";
-import { isAdminAuthenticated } from "@/lib/session";
+import { getLoginType, isAdminAuthenticated } from "@/lib/session";
 
 export async function requireAdminAuth() {
-  if (!(await isAdminAuthenticated())) {
+  if (!(await isAdminAuthenticated()) || (await getLoginType()) !== "admin") {
     redirect("/login");
   }
 }

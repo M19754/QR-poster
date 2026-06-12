@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getLeaderGroupId } from "@/lib/session";
+import { getStaffSession } from "@/lib/session";
 import { LeaderTaskForm } from "@/components/LeaderTaskForm";
 import { StaffPageShell } from "@/components/layouts/StaffLayout";
 import { Button } from "@/components/ui";
@@ -11,8 +11,10 @@ export default async function LeaderTaskPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const groupId = await getLeaderGroupId();
-  if (!groupId) redirect("/login");
+  const session = await getStaffSession();
+  if (!session || session.loginType !== "gruppe") redirect("/login");
+
+  const groupId = session.groupId;
 
   const { id } = await params;
 

@@ -1,25 +1,25 @@
 import { redirect } from "next/navigation";
 import { changeLeaderPassword } from "@/lib/actions/leader";
 import { prisma } from "@/lib/db";
-import { getLeaderGroupId } from "@/lib/session";
+import { getStaffSession } from "@/lib/session";
 import { PasswordForm } from "@/components/PasswordForm";
-import { LeaderAuthShell } from "@/components/layouts/StaffLayout";
+import { StaffAuthShell } from "@/components/layouts/StaffAuthShell";
 import { Alert, Card } from "@/components/ui";
 
 export default async function ChangePasswordPage() {
-  const groupId = await getLeaderGroupId();
-  if (!groupId) redirect("/login");
+  const session = await getStaffSession();
+  if (!session || session.loginType !== "gruppe") redirect("/login");
 
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
+  const group = await prisma.group.findUnique({ where: { id: session.groupId } });
   if (!group) redirect("/login");
   if (!group.mustChangePassword) redirect("/dashboard");
 
   return (
-    <LeaderAuthShell
+    <StaffAuthShell
       title="Skift kode"
       subtitle={`Du skal skifte kode for ${group.name} ved første login.`}
     >
-      <Card className="w-full max-w-md border-[var(--border)]">
+      <Card className="w-full max-w-md">
         <Alert variant="info">
           Af sikkerhedshensyn skal du vælge en ny kode, før du kan redigere opgaver.
         </Alert>
@@ -27,6 +27,6 @@ export default async function ChangePasswordPage() {
           <PasswordForm action={changeLeaderPassword} />
         </div>
       </Card>
-    </LeaderAuthShell>
+    </StaffAuthShell>
   );
 }
