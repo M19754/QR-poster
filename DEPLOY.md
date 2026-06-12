@@ -6,91 +6,79 @@
 |-----------|----------|
 | App | [Vercel](https://vercel.com) |
 | Database | [Supabase](https://supabase.com) (PostgreSQL) |
-| Filer | Vercel Blob (aktiveres i Vercel-dashboard) |
+| Filer | Vercel Blob |
 | Domæne | SKS-løb.dk → Vercel DNS |
 
 ---
 
-## 1. Push til GitHub
+## 1. Database (Supabase) — gør dette først
+
+1. Gå til [supabase.com](https://supabase.com) og opret et **gratis projekt**
+2. Vælg region tæt på dig (fx Frankfurt)
+3. Gå til **Project Settings → Database**
+4. Kopiér **Connection string → URI** (vælg **Direct connection**, ikke pooler)
+5. Erstat `[YOUR-PASSWORD]` med dit database-password fra projektet
+
+Eksempel:
+```
+postgresql://postgres.xxxx:PASSWORD@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
+```
+
+6. Kør setup fra din PC:
 
 ```powershell
 cd C:\Users\cvn24\Documents\QR-poster
-git add .
-git commit -m "Klar til produktion"
-git push -u origin main
-```
-
----
-
-## 2. Supabase (database)
-
-1. Opret projekt på [supabase.com](https://supabase.com)
-2. Gå til **Settings → Database** og kopiér connection string (URI)
-3. Skift `prisma/schema.prisma` datasource til PostgreSQL:
-
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-4. Kør migrering mod Supabase:
-
-```powershell
 $env:DATABASE_URL="postgresql://..."
-npx prisma db push
-npx tsx prisma/seed.ts
+.\scripts\setup-production-db.ps1
 ```
+
+Det opretter alle tabeller og seed-data (admin: **1234 / 1234**).
 
 ---
 
-## 3. Vercel
+## 2. Vercel
 
-1. [vercel.com/new](https://vercel.com/new) → Importér GitHub-repoet
-2. Tilføj miljøvariabler:
+1. [vercel.com](https://vercel.com) → dit **QR-poster**-projekt
+2. **Settings → Environment Variables** — tilføj:
 
 | Variabel | Værdi |
 |----------|-------|
-| `DATABASE_URL` | Supabase PostgreSQL URI |
+| `DATABASE_URL` | Supabase connection string (samme som ovenfor) |
 | `DEFAULT_GROUP_PASSWORD` | `E26` |
-| `NEXT_PUBLIC_BASE_URL` | `https://sks-løb.dk` |
+| `NEXT_PUBLIC_BASE_URL` | `https://qr-poster-sks.vercel.app` |
 
-3. **Storage:** I Vercel-projektet → **Storage** → Opret **Blob Store**
-   - `BLOB_READ_WRITE_TOKEN` sættes automatisk
+3. **Storage → Blob Store** (til fil-upload)
+4. **Deployments → Redeploy** (så ny database bruges)
 
-4. Deploy
+Ved build kører `prisma migrate deploy` automatisk.
+
+---
+
+## 3. Lokal udvikling (valgfrit)
+
+Med Docker:
+
+```powershell
+docker compose up -d
+$env:DATABASE_URL="postgresql://qrposter:qrposter@localhost:5432/qrposter"
+npm run db:setup
+npm run dev
+```
 
 ---
 
 ## 4. DNS (SKS-løb.dk)
 
-I dit webhotels DNS-panel (eller hvor domænet styres):
+I webhotellets DNS-panel:
 
-1. Tilføj **A-record** eller **CNAME** som Vercel viser under **Domains**
-2. Typisk: `CNAME www` → `cname.vercel-dns.com`
-3. Apex-domæne (`sks-løb.dk`): brug Vercels A-records eller ANAME hvis webhotellet understøtter det
-
-Vent op til 24 timer på DNS-propagation.
+- `CNAME app` → `cname.vercel-dns.com`
+- Tilføj domænet i Vercel under **Domains**
 
 ---
 
-## 5. Efter deploy — tjekliste
+## Tjekliste efter deploy
 
-- [ ] Admin-login virker (`/admin/login`)
-- [ ] Leder-login virker (`/login`)
-- [ ] Deltager-link (`/o/[id]`) åbner på mobil
-- [ ] Fil-upload (billede/PDF) virker (kræver Blob)
-- [ ] QR-koder peger på `https://sks-løb.dk/o/...`
-
----
-
-## Lokal udvikling vs. produktion
-
-| | Lokal | Produktion |
-|---|-------|------------|
-| Database | SQLite (`file:./dev.db`) | PostgreSQL (Supabase) |
-| Filer | `public/uploads/` | Vercel Blob |
-| URL | `localhost:3000` | `sks-løb.dk` |
-
-SQLite virker **ikke** på Vercel — du skal bruge PostgreSQL i produktion.
+- [ ] Admin-login: `1234` / `1234` på `/admin/login`
+- [ ] Skift login ved første gang
+- [ ] Leder-login: `Grp. 1` / `E26` på `/login`
+- [ ] Deltager-link `/o/[id]` virker på mobil

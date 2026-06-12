@@ -26,22 +26,33 @@ Kopiér `.env.example` til `.env` og tilpas værdierne:
 Copy-Item .env.example .env
 ```
 
-### 2. Installér og start
+### 2. Database (lokal)
+
+Enten Supabase (gratis) eller Docker:
+
+```powershell
+docker compose up -d
+$env:DATABASE_URL="postgresql://qrposter:qrposter@localhost:5432/qrposter"
+npm run db:setup
+```
+
+### 3. Installér og start
 
 ```powershell
 npm install
-npm run db:setup
 npm run dev
 ```
 
 Åbn [http://localhost:3000](http://localhost:3000)
 
-### 3. Standard-login
+### 4. Standard-login
 
 | Rolle | Brugernavn | Kode |
 |-------|------------|------|
 | Admin | `1234` | `1234` (skiftes ved første login) |
 | Leder | `Grp. 1` | `E26` (skal skiftes ved første login) |
+
+**Produktion kræver PostgreSQL** (Supabase). Se [DEPLOY.md](./DEPLOY.md).
 
 ## URL-struktur
 

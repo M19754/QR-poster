@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: qrposter
+      POSTGRES_PASSWORD: qrposter
+      POSTGRES_DB: qrposter
+    ports:
+      - "5432:5432"
+    volumes:
+      - qrposter_pg:/var/lib/postgresql/data
+
+volumes:
+  qrposter_pg:
