@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma, getActiveCamp } from "@/lib/db";
 import { buildParticipantItems } from "@/lib/participant";
+import { resolveParticipantEntries } from "@/lib/blob-playback";
 import { ParticipantView } from "@/components/ParticipantView";
 
 export default async function ParticipantTaskPage({
@@ -32,9 +33,10 @@ export default async function ParticipantTaskPage({
   const visibilityByGroup: Record<string, boolean> = {};
   for (const tc of taskContents) {
     visibilityByGroup[tc.groupId] = tc.visibleToParticipants;
-    contentByGroup[tc.groupId] = tc.visibleToParticipants
+    const built = tc.visibleToParticipants
       ? buildParticipantItems(tc.items)
       : [];
+    contentByGroup[tc.groupId] = await resolveParticipantEntries(built);
   }
 
   return (

@@ -115,6 +115,7 @@ function ContentItemView({ item }: { item: ContentItem }) {
         <video
           controls
           playsInline
+          preload="metadata"
           className="max-h-[60vh] w-full rounded-xl"
           src={mediaSrc}
         >

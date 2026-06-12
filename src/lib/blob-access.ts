@@ -24,9 +24,17 @@ export function extractBlobPathname(fileUrl: string): string | null {
   }
 }
 
-/** Omdan privat Blob-URL til app-proxy; lokale /uploads/ og andre URL'er uændret. */
+/** Omdan privat Blob-URL til app-proxy; presigned og lokale URL'er uændret. */
 export function getMediaSrc(fileUrl: string): string {
   if (!fileUrl || fileUrl.startsWith("/")) return fileUrl;
+
+  try {
+    const url = new URL(fileUrl);
+    if (url.search) return fileUrl;
+  } catch {
+    return fileUrl;
+  }
+
   const pathname = extractBlobPathname(fileUrl);
   if (!pathname) return fileUrl;
   return `/api/media?pathname=${encodeURIComponent(pathname)}`;
