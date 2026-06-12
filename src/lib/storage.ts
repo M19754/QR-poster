@@ -1,6 +1,7 @@
 import { put } from "@vercel/blob";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { BLOB_ACCESS } from "@/lib/blob-access";
 
 function canUseVercelBlob() {
   return Boolean(
@@ -15,7 +16,7 @@ export async function storeUploadedFile(
 ): Promise<string> {
   if (canUseVercelBlob()) {
     const blob = await put(`uploads/${storedName}`, buffer, {
-      access: "public",
+      access: BLOB_ACCESS,
       addRandomSuffix: false,
     });
     return blob.url;

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ContentItem, Task } from "@prisma/client";
 import { saveTaskContent } from "@/lib/actions/leader";
+import { BLOB_ACCESS } from "@/lib/blob-access";
 import { getAcceptForType, getTypeLabel, MAX_FILE_BYTES, detectFileType, type ContentFileType } from "@/lib/files";
 import {
   formatDanishDateTime,
@@ -236,7 +237,7 @@ export function LeaderTaskForm({
       const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
       const pathname = `upload-${Date.now()}-${index}${ext}`;
       const blob = await uploadPresigned(pathname, file, {
-        access: "public",
+        access: BLOB_ACCESS,
         handleUploadUrl: "/api/upload",
       });
       return {

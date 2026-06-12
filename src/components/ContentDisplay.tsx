@@ -1,5 +1,6 @@
 import type { ContentItem } from "@prisma/client";
 import type { ParticipantItemView } from "@/lib/participant";
+import { getMediaSrc } from "@/lib/blob-access";
 import { getTypeLabel } from "@/lib/files";
 import { formatDanishDateTime } from "@/lib/visibility";
 
@@ -53,16 +54,18 @@ function ScheduledItemView({
 }
 
 function ContentItemView({ item }: { item: ContentItem }) {
+  const mediaSrc = item.fileUrl ? getMediaSrc(item.fileUrl) : null;
+
   if (item.type === "text" && item.body) {
     return <p className="whitespace-pre-wrap text-base leading-relaxed">{item.body}</p>;
   }
 
-  if (item.type === "image" && item.fileUrl) {
+  if (item.type === "image" && mediaSrc) {
     return (
       <div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={item.fileUrl}
+          src={mediaSrc}
           alt={item.fileName ?? "Billede"}
           className="max-h-[70vh] w-full rounded-xl object-contain"
         />
@@ -71,18 +74,18 @@ function ContentItemView({ item }: { item: ContentItem }) {
     );
   }
 
-  if (item.type === "pdf" && item.fileUrl) {
+  if (item.type === "pdf" && mediaSrc) {
     return (
       <div>
         {item.body ? <p className="mb-3 whitespace-pre-wrap text-sm">{item.body}</p> : null}
         <p className="mb-2 font-medium">{item.fileName ?? "PDF"}</p>
         <iframe
-          src={item.fileUrl}
+          src={mediaSrc}
           title={item.fileName ?? "PDF"}
           className="h-[60vh] w-full rounded-xl border border-[var(--border)]"
         />
         <a
-          href={item.fileUrl}
+          href={mediaSrc}
           className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white"
           target="_blank"
           rel="noreferrer"
@@ -93,19 +96,19 @@ function ContentItemView({ item }: { item: ContentItem }) {
     );
   }
 
-  if (item.type === "audio" && item.fileUrl) {
+  if (item.type === "audio" && mediaSrc) {
     return (
       <div>
         <p className="mb-2 font-medium">{item.fileName ?? "Lyd"}</p>
         {item.body ? <p className="mb-3 whitespace-pre-wrap text-sm">{item.body}</p> : null}
-        <audio controls className="w-full" src={item.fileUrl}>
+        <audio controls className="w-full" src={mediaSrc}>
           Din browser understøtter ikke lydafspilning.
         </audio>
       </div>
     );
   }
 
-  if (item.type === "video" && item.fileUrl) {
+  if (item.type === "video" && mediaSrc) {
     return (
       <div>
         {item.body ? <p className="mb-3 whitespace-pre-wrap text-sm">{item.body}</p> : null}
@@ -113,7 +116,7 @@ function ContentItemView({ item }: { item: ContentItem }) {
           controls
           playsInline
           className="max-h-[60vh] w-full rounded-xl"
-          src={item.fileUrl}
+          src={mediaSrc}
         >
           Din browser understøtter ikke videoafspilning.
         </video>
@@ -121,13 +124,13 @@ function ContentItemView({ item }: { item: ContentItem }) {
     );
   }
 
-  if (item.fileUrl) {
+  if (mediaSrc) {
     return (
       <div>
         <p className="mb-2 font-medium">{item.fileName ?? "Fil"}</p>
         {item.body ? <p className="mb-3 whitespace-pre-wrap text-sm">{item.body}</p> : null}
         <a
-          href={item.fileUrl}
+          href={mediaSrc}
           className="inline-flex min-h-11 items-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white"
           target="_blank"
           rel="noreferrer"

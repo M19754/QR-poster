@@ -1,4 +1,5 @@
 import type { ContentItem } from "@prisma/client";
+import { getMediaSrc } from "@/lib/blob-access";
 import { getTypeLabel } from "@/lib/files";
 import { formatDanishDateTime } from "@/lib/visibility";
 import { Badge } from "@/components/ui";
@@ -42,7 +43,7 @@ export function AdminContentPreview({
               ) : null}
               {item.fileUrl ? (
                 <a
-                  href={item.fileUrl}
+                  href={getMediaSrc(item.fileUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm font-medium text-[var(--accent-dark)]"

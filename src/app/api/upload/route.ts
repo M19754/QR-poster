@@ -6,6 +6,7 @@ import {
 import { NextResponse, type NextRequest } from "next/server";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import { BLOB_ACCESS } from "@/lib/blob-access";
 import { detectFileType, MAX_FILE_BYTES } from "@/lib/files";
 import { getStaffSession } from "@/lib/session";
 import { storeUploadedFile } from "@/lib/storage";
@@ -91,6 +92,7 @@ async function handlePresignedClientUpload(request: NextRequest) {
       return {
         token: issued,
         urlOptions: {
+          access: BLOB_ACCESS,
           addRandomSuffix: !multipart,
           tokenPayload: clientPayload ?? undefined,
         },
