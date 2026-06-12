@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma, getActiveCamp } from "@/lib/db";
 import { cloneCampStructure } from "@/lib/camp";
+import { applyCampImport } from "@/lib/apply-camp-import";
 import { ensureAdminSettings } from "@/lib/admin-settings";
 import { getFormField } from "@/lib/form-data";
+import { parseImportFile } from "@/lib/import-camp";
 import { verifyPassword, hashPassword } from "@/lib/password";
 import {
   isAdminAuthenticated,
@@ -250,6 +252,42 @@ export async function resetAllParticipants() {
   });
 
   revalidatePath("/admin");
+}
+
+export async function importCampStructure(formData: FormData) {
+  await requireAdminReady();
+  const camp = await getActiveCamp();
+  if (!camp) redirect("/admin?importError=no-camp");
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    redirect("/admin?importError=no-file");
+  }
+
+  const text = await file.text();
+  const parsed = parseImportFile(file.name, text);
+  if (!parsed.ok) {
+    redirect(`/admin?importError=${encodeURIComponent(parsed.error)}`);
+  }
+
+  const mode = formData.get("replace") === "on" ? "replace" : "merge";
+  const result = await applyCampImport(
+    camp.id,
+    camp.defaultPassword,
+    parsed.data,
+    mode
+  );
+
+  const summary = [
+    result.groupsCreated ? `${result.groupsCreated} grupper oprettet` : "",
+    result.groupsUpdated ? `${result.groupsUpdated} grupper opdateret` : "",
+    result.tasksCreated ? `${result.tasksCreated} opgaver oprettet` : "",
+    result.tasksUpdated ? `${result.tasksUpdated} opgaver opdateret` : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  redirect(`/admin?importOk=${encodeURIComponent(summary || "Import fuldført")}`);
 }
 
 export async function startNewCamp(formData: FormData) {

@@ -8,12 +8,14 @@ import {
   deleteTask,
   resetAllGroupPasswords,
   resetGroupPassword,
+  importCampStructure,
   resetAllParticipants,
   startNewCamp,
   updateCampSettings,
   updateGroup,
   updateTask,
 } from "@/lib/actions/admin";
+import { ImportCampForm } from "@/components/ImportCampForm";
 import { prisma, getActiveCamp } from "@/lib/db";
 import { ensureAdminSettings } from "@/lib/admin-settings";
 import { isAdminAuthenticated } from "@/lib/session";
@@ -22,8 +24,14 @@ import { QrCodeDisplay } from "@/components/QrCodeDisplay";
 import { StaffPageShell } from "@/components/layouts/StaffLayout";
 import { Alert, Badge, Button, Card, Input, Label } from "@/components/ui";
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ importOk?: string; importError?: string }>;
+}) {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
+
+  const { importOk, importError } = await searchParams;
 
   const adminSettings = await ensureAdminSettings();
   if (adminSettings.mustChangeCredentials) redirect("/admin/skift-login");
@@ -66,6 +74,38 @@ export default async function AdminPage() {
       }
     >
       <div className="space-y-6">
+        {importOk ? (
+          <Alert variant="success">Import fuldført: {decodeURIComponent(importOk)}</Alert>
+        ) : null}
+        {importError ? (
+          <Alert>
+            Import fejlede:{" "}
+            {importError === "no-file"
+              ? "Vælg en fil først."
+              : importError === "no-camp"
+                ? "Ingen aktiv lejr."
+                : decodeURIComponent(importError)}
+          </Alert>
+        ) : null}
+
+        <Card>
+          <h2 className="mb-2 text-lg font-semibold">Importér grupper og opgaver</h2>
+          <p className="mb-4 text-sm text-[var(--muted)]">
+            Download skabelonen, udfyld i Excel, og upload CSV-filen. Kolonnen{" "}
+            <code className="rounded bg-slate-100 px-1">type</code> skal være{" "}
+            <code className="rounded bg-slate-100 px-1">gruppe</code> eller{" "}
+            <code className="rounded bg-slate-100 px-1">opgave</code>.
+          </p>
+          <div className="mb-4">
+            <a href="/api/admin/import-template">
+              <Button type="button" variant="secondary">
+                Download skabelon (CSV)
+              </Button>
+            </a>
+          </div>
+          <ImportCampForm action={importCampStructure} />
+        </Card>
+
         <Card>
           <h2 className="mb-4 text-lg font-semibold">Lejr-indstillinger</h2>
           <form action={updateCampSettings} className="grid gap-3 sm:grid-cols-2">

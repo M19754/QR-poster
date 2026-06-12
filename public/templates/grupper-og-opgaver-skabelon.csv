@@ -1,0 +1,7 @@
+type;navn;brugernavn;titel;sortering;aktiv
+gruppe;Gruppe 1;Grp. 1;;1;ja
+gruppe;Gruppe 2;Grp. 2;;2;ja
+gruppe;Gruppe 3;Grp. 3;;3;ja
+opgave;;;Opgave 1 — Velkommen;1;ja
+opgave;;;Opgave 2 — Aktivitet;2;ja
+opgave;;;Opgave 3 — Aftensmad;3;ja
