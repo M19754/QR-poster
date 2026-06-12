@@ -40,7 +40,7 @@ npm run dev
 
 | Rolle | Brugernavn | Kode |
 |-------|------------|------|
-| Admin | `canis` | `SKS` |
+| Admin | `1234` | `1234` (skiftes ved første login) |
 | Leder | `Grp. 1` | `E26` (skal skiftes ved første login) |
 
 ## URL-struktur

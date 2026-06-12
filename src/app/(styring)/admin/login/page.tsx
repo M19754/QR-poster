@@ -19,7 +19,9 @@ export default async function AdminLoginPage({
           <Logo variant="brand" size={96} />
         </div>
         <h1 className="text-2xl font-bold">Admin-login</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Fast administratorkonto</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Standard: 1234 / 1234 — skiftes ved første login
+        </p>
       </div>
 
       <Card className="w-full max-w-md">
@@ -28,7 +30,7 @@ export default async function AdminLoginPage({
             <Label>Brugernavn</Label>
             <Input
               name="username"
-              placeholder="canis"
+              placeholder="1234"
               required
               autoComplete="username"
             />

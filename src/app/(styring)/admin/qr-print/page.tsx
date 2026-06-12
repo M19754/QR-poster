@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma, getActiveCamp } from "@/lib/db";
+import { ensureAdminSettings } from "@/lib/admin-settings";
 import { isAdminAuthenticated } from "@/lib/session";
 import { getTaskPublicUrl } from "@/lib/urls";
 import { PrintButton } from "@/components/PrintButton";
@@ -9,6 +10,9 @@ import { Button } from "@/components/ui";
 
 export default async function QrPrintPage() {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
+
+  const adminSettings = await ensureAdminSettings();
+  if (adminSettings.mustChangeCredentials) redirect("/admin/skift-login");
 
   const camp = await getActiveCamp();
   if (!camp) redirect("/admin");

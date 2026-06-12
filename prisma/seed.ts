@@ -10,6 +10,22 @@ async function main() {
   await prisma.group.deleteMany();
   await prisma.camp.deleteMany();
 
+  const adminPasswordHash = await bcrypt.hash("1234", 10);
+  await prisma.adminSettings.upsert({
+    where: { id: "default" },
+    update: {
+      username: "1234",
+      passwordHash: adminPasswordHash,
+      mustChangeCredentials: true,
+    },
+    create: {
+      id: "default",
+      username: "1234",
+      passwordHash: adminPasswordHash,
+      mustChangeCredentials: true,
+    },
+  });
+
   const defaultPassword = process.env.DEFAULT_GROUP_PASSWORD ?? "E26";
   const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
@@ -75,7 +91,7 @@ async function main() {
   console.log(`  Grupper: ${groups.length}`);
   console.log(`  Opgaver: ${tasks.length}`);
   console.log(`  Standard gruppekode: ${defaultPassword}`);
-  console.log("  Admin: canis");
+  console.log("  Admin: 1234 / 1234 (skift ved første login)");
 }
 
 main()

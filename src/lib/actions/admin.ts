@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma, getActiveCamp } from "@/lib/db";
 import { cloneCampStructure } from "@/lib/camp";
-import { hashPassword } from "@/lib/password";
-import { ADMIN_PASSWORD, ADMIN_USERNAME } from "@/lib/admin-auth";
+import { ensureAdminSettings } from "@/lib/admin-settings";
 import { getFormField } from "@/lib/form-data";
+import { verifyPassword, hashPassword } from "@/lib/password";
 import {
   isAdminAuthenticated,
   setAdminSession,
@@ -19,18 +19,61 @@ async function requireAdmin() {
   }
 }
 
+async function requireAdminReady() {
+  await requireAdmin();
+  const settings = await ensureAdminSettings();
+  if (settings.mustChangeCredentials) {
+    redirect("/admin/skift-login");
+  }
+}
+
 export async function adminLogin(formData: FormData) {
+  const settings = await ensureAdminSettings();
   const username = getFormField(formData, "username").trim();
   const password = getFormField(formData, "password").trim();
 
   if (
-    username.toLowerCase() !== ADMIN_USERNAME.toLowerCase() ||
-    password.toUpperCase() !== ADMIN_PASSWORD.toUpperCase()
+    username !== settings.username ||
+    !(await verifyPassword(password, settings.passwordHash))
   ) {
     redirect("/admin/login?error=invalid");
   }
 
   await setAdminSession();
+  if (settings.mustChangeCredentials) {
+    redirect("/admin/skift-login");
+  }
+  redirect("/admin");
+}
+
+export async function changeAdminCredentials(formData: FormData) {
+  await requireAdmin();
+  const settings = await ensureAdminSettings();
+  if (!settings.mustChangeCredentials) redirect("/admin");
+
+  const username = getFormField(formData, "username").trim();
+  const newPassword = getFormField(formData, "newPassword").trim();
+  const confirmPassword = getFormField(formData, "confirmPassword").trim();
+
+  if (username.length < 2) {
+    redirect("/admin/skift-login?error=username");
+  }
+  if (newPassword.length < 3) {
+    redirect("/admin/skift-login?error=password");
+  }
+  if (newPassword !== confirmPassword) {
+    redirect("/admin/skift-login?error=mismatch");
+  }
+
+  await prisma.adminSettings.update({
+    where: { id: "default" },
+    data: {
+      username,
+      passwordHash: await hashPassword(newPassword),
+      mustChangeCredentials: false,
+    },
+  });
+
   redirect("/admin");
 }
 
@@ -40,7 +83,7 @@ export async function adminLogout() {
 }
 
 export async function createGroup(formData: FormData) {
-  await requireAdmin();
+  await requireAdminReady();
   const camp = await getActiveCamp();
   if (!camp) return;
 
@@ -72,7 +115,7 @@ export async function createGroup(formData: FormData) {
 }
 
 export async function updateGroup(formData: FormData) {
-  await requireAdmin();
+  await requireAdminReady();
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const username = String(formData.get("username") ?? "").trim();
@@ -89,7 +132,7 @@ export async function updateGroup(formData: FormData) {
 }
 
 export async function deleteGroup(formData: FormData) {
-  await requireAdmin();
+  await requireAdminReady();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
@@ -98,7 +141,7 @@ export async function deleteGroup(formData: FormData) {
 }
 
 export async function createTask(formData: FormData) {
-  await requireAdmin();
+  await requireAdminReady();
   const camp = await getActiveCamp();
   if (!camp) return;
 
@@ -124,7 +167,7 @@ export async function createTask(formData: FormData) {
 }
 
 export async function updateTask(formData: FormData) {
-  await requireAdmin();
+  await requireAdminReady();
   const id = String(formData.get("id") ?? "");
   const title = String(formData.get("title") ?? "").trim();
   const active = formData.get("active") === "on";
@@ -140,7 +183,7 @@ export async function updateTask(formData: FormData) {
 }
 
 export async function deleteTask(formData: FormData) {
-  await requireAdmin();
+  await requireAdminReady();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
@@ -149,7 +192,7 @@ export async function deleteTask(formData: FormData) {
 }
 
 export async function updateCampSettings(formData: FormData) {
-  await requireAdmin();
+  await requireAdminReady();
   const camp = await getActiveCamp();
   if (!camp) return;
 
@@ -168,7 +211,7 @@ export async function updateCampSettings(formData: FormData) {
 }
 
 export async function resetGroupPassword(formData: FormData) {
-  await requireAdmin();
+  await requireAdminReady();
   const id = String(formData.get("id") ?? "");
   const camp = await getActiveCamp();
   if (!id || !camp) return;
@@ -183,7 +226,7 @@ export async function resetGroupPassword(formData: FormData) {
 }
 
 export async function resetAllGroupPasswords() {
-  await requireAdmin();
+  await requireAdminReady();
   const camp = await getActiveCamp();
   if (!camp) return;
 
@@ -197,7 +240,7 @@ export async function resetAllGroupPasswords() {
 }
 
 export async function resetAllParticipants() {
-  await requireAdmin();
+  await requireAdminReady();
   const camp = await getActiveCamp();
   if (!camp) return;
 
@@ -210,7 +253,7 @@ export async function resetAllParticipants() {
 }
 
 export async function startNewCamp(formData: FormData) {
-  await requireAdmin();
+  await requireAdminReady();
   const current = await getActiveCamp();
   if (!current) return;
 

@@ -15,6 +15,7 @@ import {
   updateTask,
 } from "@/lib/actions/admin";
 import { prisma, getActiveCamp } from "@/lib/db";
+import { ensureAdminSettings } from "@/lib/admin-settings";
 import { isAdminAuthenticated } from "@/lib/session";
 import { getTaskPublicUrl } from "@/lib/urls";
 import { QrCodeDisplay } from "@/components/QrCodeDisplay";
@@ -23,6 +24,9 @@ import { Alert, Badge, Button, Card, Input, Label } from "@/components/ui";
 
 export default async function AdminPage() {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
+
+  const adminSettings = await ensureAdminSettings();
+  if (adminSettings.mustChangeCredentials) redirect("/admin/skift-login");
 
   const camp = await getActiveCamp();
   if (!camp) {

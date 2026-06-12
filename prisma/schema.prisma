@@ -7,6 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model AdminSettings {
+  id                      String   @id @default("default")
+  username                String   @default("1234")
+  passwordHash            String
+  mustChangeCredentials   Boolean  @default(true)
+  updatedAt               DateTime @updatedAt
+}
+
 model Camp {
   id                String    @id @default(uuid())
   name              String
