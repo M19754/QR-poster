@@ -88,7 +88,8 @@ export default async function AdminPage({
           </Alert>
         ) : null}
 
-        <Card id="import">
+        <div id="import">
+        <Card>
           <h2 className="mb-2 text-lg font-semibold">Importér grupper og opgaver</h2>
           <p className="mb-4 text-sm text-[var(--muted)]">
             Download skabelonen, udfyld i Excel, og upload CSV-filen. Kolonnen{" "}
@@ -105,6 +106,7 @@ export default async function AdminPage({
           </div>
           <ImportCampForm action={importCampStructure} />
         </Card>
+        </div>
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold">Lejr-indstillinger</h2>
