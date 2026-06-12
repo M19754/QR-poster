@@ -88,7 +88,7 @@ export default async function AdminPage({
           </Alert>
         ) : null}
 
-        <Card>
+        <Card id="import">
           <h2 className="mb-2 text-lg font-semibold">Importér grupper og opgaver</h2>
           <p className="mb-4 text-sm text-[var(--muted)]">
             Download skabelonen, udfyld i Excel, og upload CSV-filen. Kolonnen{" "}
@@ -143,6 +143,16 @@ export default async function AdminPage({
                 Eksportér lejr (JSON)
               </Button>
             </a>
+            <a href="/api/admin/import-template">
+              <Button type="button" variant="accent">
+                Download import-skabelon
+              </Button>
+            </a>
+            <Link href="/admin#import">
+              <Button type="button" variant="primary">
+                Importér grupper og opgaver
+              </Button>
+            </Link>
           </div>
         </Card>
 
