@@ -12,6 +12,7 @@ import {
   setLeaderSession,
   clearLeaderSession,
 } from "@/lib/session";
+import { getFormField } from "@/lib/form-data";
 import { parseDanishDateTimeInput } from "@/lib/visibility";
 import { detectFileType, MAX_FILE_BYTES } from "@/lib/files";
 
@@ -32,8 +33,8 @@ export async function leaderLogin(
   _prevState: { error?: string } | null,
   formData: FormData
 ) {
-  const username = String(formData.get("username") ?? "").trim();
-  const password = String(formData.get("password") ?? "").trim();
+  const username = getFormField(formData, "username").trim();
+  const password = getFormField(formData, "password").trim();
 
   const group = await prisma.group.findFirst({
     where: { username, active: true },

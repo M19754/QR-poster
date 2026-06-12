@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { adminLogin } from "@/lib/actions/admin";
-import { LoginForm } from "@/components/LoginForm";
 import { Logo } from "@/components/Logo";
-import { Card } from "@/components/ui";
+import { Alert, Button, Card, Input, Label } from "@/components/ui";
 
-export default function AdminLoginPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
       <div className="mb-6 text-center">
@@ -16,7 +23,32 @@ export default function AdminLoginPage() {
       </div>
 
       <Card className="w-full max-w-md">
-        <LoginForm action={adminLogin} />
+        <form action={adminLogin} className="space-y-4">
+          <div>
+            <Label>Brugernavn</Label>
+            <Input
+              name="username"
+              placeholder="canis"
+              required
+              autoComplete="username"
+            />
+          </div>
+          <div>
+            <Label>Adgangskode</Label>
+            <Input
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+          {error ? (
+            <Alert>Forkert brugernavn eller adgangskode.</Alert>
+          ) : null}
+          <Button type="submit" className="w-full">
+            Log ind
+          </Button>
+        </form>
         <p className="mt-4 text-center text-sm text-[var(--muted)]">
           <Link href="/">← Tilbage til forsiden</Link>
         </p>
