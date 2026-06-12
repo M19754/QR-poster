@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { ContentItem, Task } from "@prisma/client";
 import { saveTaskContent } from "@/lib/actions/leader";
 import { getAcceptForType, getTypeLabel, type ContentFileType } from "@/lib/files";
@@ -25,8 +26,6 @@ type ItemDraft = {
   untilDate: string;
   untilTime: string;
 };
-
-type SaveState = { error?: string; success?: boolean } | null;
 
 function toDraft(item?: ContentItem): ItemDraft {
   const from = item?.visibleFrom ?? null;
@@ -110,6 +109,7 @@ function ScheduleFields({
               <Label>Synlig fra (dato)</Label>
               <Input
                 type="date"
+                name={`item_${index}_fromDate`}
                 value={draft.fromDate}
                 onChange={(e) => updateDraft(index, { fromDate: e.target.value })}
               />
@@ -118,6 +118,7 @@ function ScheduleFields({
               <Label>Synlig fra (tid)</Label>
               <Input
                 type="time"
+                name={`item_${index}_fromTime`}
                 value={draft.fromTime}
                 onChange={(e) => updateDraft(index, { fromTime: e.target.value })}
               />
@@ -126,6 +127,7 @@ function ScheduleFields({
               <Label>Synlig til (dato)</Label>
               <Input
                 type="date"
+                name={`item_${index}_untilDate`}
                 value={draft.untilDate}
                 onChange={(e) => updateDraft(index, { untilDate: e.target.value })}
               />
@@ -134,6 +136,7 @@ function ScheduleFields({
               <Label>Synlig til (tid)</Label>
               <Input
                 type="time"
+                name={`item_${index}_untilTime`}
                 value={draft.untilTime}
                 onChange={(e) => updateDraft(index, { untilTime: e.target.value })}
               />
@@ -152,12 +155,23 @@ function ScheduleFields({
               Vis åbningstidspunkt for deltagere (før indholdet åbner)
             </span>
           </label>
+          <input
+            type="hidden"
+            name={`item_${index}_showOpenTime`}
+            value={draft.showOpenTimeToParticipants ? "on" : ""}
+          />
         </div>
       ) : (
         <p className="text-sm text-[var(--muted)]">
           Vises altid, når opgaven er synlig.
         </p>
       )}
+
+      <input
+        type="hidden"
+        name={`item_${index}_useSchedule`}
+        value={draft.useSchedule ? "on" : ""}
+      />
 
       {draft.useSchedule && draft.fromDate ? (
         <p className="mt-2 text-xs text-[var(--muted)]">
@@ -172,41 +186,6 @@ function ScheduleFields({
   );
 }
 
-function DraftHiddenFields({ drafts }: { drafts: ItemDraft[] }) {
-  return (
-    <>
-      <input type="hidden" name="itemCount" value={String(drafts.length)} />
-      {drafts.map((draft, index) => (
-        <div key={draft.id ?? `new-${index}`} className="hidden" aria-hidden>
-          {draft.id ? <input type="hidden" name={`item_${index}_id`} value={draft.id} /> : null}
-          <input type="hidden" name={`item_${index}_type`} value={draft.type} />
-          <input type="hidden" name={`item_${index}_body`} value={draft.body} />
-          {draft.fileUrl ? (
-            <input type="hidden" name={`item_${index}_fileUrl`} value={draft.fileUrl} />
-          ) : null}
-          {draft.fileName ? (
-            <input type="hidden" name={`item_${index}_fileName`} value={draft.fileName} />
-          ) : null}
-          <input
-            type="hidden"
-            name={`item_${index}_useSchedule`}
-            value={draft.useSchedule ? "on" : ""}
-          />
-          <input
-            type="hidden"
-            name={`item_${index}_showOpenTime`}
-            value={draft.showOpenTimeToParticipants ? "on" : ""}
-          />
-          <input type="hidden" name={`item_${index}_fromDate`} value={draft.fromDate} />
-          <input type="hidden" name={`item_${index}_fromTime`} value={draft.fromTime} />
-          <input type="hidden" name={`item_${index}_untilDate`} value={draft.untilDate} />
-          <input type="hidden" name={`item_${index}_untilTime`} value={draft.untilTime} />
-        </div>
-      ))}
-    </>
-  );
-}
-
 export function LeaderTaskForm({
   task,
   visibleToParticipants,
@@ -216,14 +195,15 @@ export function LeaderTaskForm({
   visibleToParticipants: boolean;
   items: ContentItem[];
 }) {
+  const router = useRouter();
   const [drafts, setDrafts] = useState<ItemDraft[]>(
     items.length > 0 ? items.map(toDraft) : [toDraft()]
   );
   const [visible, setVisible] = useState(visibleToParticipants);
-  const [state, formAction, pending] = useActionState<SaveState, FormData>(
-    saveTaskContent,
+  const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(
     null
   );
+  const [pending, setPending] = useState(false);
 
   function updateDraft(index: number, patch: Partial<ItemDraft>) {
     setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
@@ -237,18 +217,50 @@ export function LeaderTaskForm({
     setDrafts((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const message = state?.error
-    ? state.error
-    : state?.success
-      ? "Opgaven er gemt."
-      : null;
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setMessage(null);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    formData.set("taskId", task.id);
+    formData.set("visible", visible ? "on" : "");
+    formData.set("itemCount", String(drafts.length));
+
+    drafts.forEach((draft, index) => {
+      formData.set(`item_${index}_type`, draft.type);
+      if (draft.id) formData.set(`item_${index}_id`, draft.id);
+      if (draft.fileUrl) formData.set(`item_${index}_fileUrl`, draft.fileUrl);
+      if (draft.fileName) formData.set(`item_${index}_fileName`, draft.fileName);
+    });
+
+    try {
+      const result = await saveTaskContent(null, formData);
+      if (result?.error) {
+        setMessage({ type: "error", text: result.error });
+      } else {
+        setMessage({ type: "success", text: "Opgaven er gemt." });
+        router.refresh();
+      }
+    } catch {
+      setMessage({
+        type: "error",
+        text: "Kunne ikke gemme opgaven. Prøv igen.",
+      });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const hasFileInputs = drafts.some((draft) => draft.type !== "text");
 
   return (
-    <form action={formAction} encType="multipart/form-data" className="space-y-4">
-      <input type="hidden" name="taskId" value={task.id} />
-      <input type="hidden" name="visible" value={visible ? "on" : ""} />
-      <DraftHiddenFields drafts={drafts} />
-
+    <form
+      onSubmit={handleSubmit}
+      encType={hasFileInputs ? "multipart/form-data" : undefined}
+      className="space-y-4"
+    >
       <Card>
         <label className="flex items-center gap-3">
           <input
@@ -263,6 +275,17 @@ export function LeaderTaskForm({
 
       {drafts.map((draft, index) => (
         <Card key={draft.id ?? `new-${index}`}>
+          <input type="hidden" name={`item_${index}_type`} value={draft.type} />
+          {draft.id ? (
+            <input type="hidden" name={`item_${index}_id`} value={draft.id} />
+          ) : null}
+          {draft.fileUrl ? (
+            <input type="hidden" name={`item_${index}_fileUrl`} value={draft.fileUrl} />
+          ) : null}
+          {draft.fileName ? (
+            <input type="hidden" name={`item_${index}_fileName`} value={draft.fileName} />
+          ) : null}
+
           <div className="mb-4 flex items-center justify-between gap-2">
             <h3 className="font-semibold">
               {getTypeLabel(draft.type)} #{index + 1}
@@ -274,6 +297,7 @@ export function LeaderTaskForm({
             <div className="mb-4">
               <Label>Tekst</Label>
               <Textarea
+                name={`item_${index}_body`}
                 value={draft.body}
                 onChange={(e) => updateDraft(index, { body: e.target.value })}
               />
@@ -296,6 +320,7 @@ export function LeaderTaskForm({
               <div>
                 <Label>Tekst (valgfri)</Label>
                 <Textarea
+                  name={`item_${index}_body`}
                   value={draft.body}
                   onChange={(e) => updateDraft(index, { body: e.target.value })}
                 />
@@ -334,7 +359,9 @@ export function LeaderTaskForm({
       </div>
 
       {message ? (
-        <Alert variant={state?.success ? "success" : "error"}>{message}</Alert>
+        <Alert variant={message.type === "success" ? "success" : "error"}>
+          {message.text}
+        </Alert>
       ) : null}
 
       <Button type="submit" disabled={pending}>

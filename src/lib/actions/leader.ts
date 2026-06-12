@@ -118,9 +118,10 @@ export async function saveTaskContent(
   _prev: { error?: string; success?: boolean } | null,
   formData: FormData
 ) {
-  const leader = await requireLeader();
-  if (isLeaderError(leader)) return { error: leader.error };
-  const group = leader;
+  try {
+    const leader = await requireLeader();
+    if (isLeaderError(leader)) return { error: leader.error };
+    const group = leader;
   const taskId = String(formData.get("taskId") ?? "");
   const visible = formData.get("visible") === "on";
 
@@ -220,4 +221,8 @@ export async function saveTaskContent(
   revalidatePath(`/dashboard/opgave/${taskId}`);
   revalidatePath(`/o/${taskId}`);
   return { success: true };
+  } catch (error) {
+    console.error("saveTaskContent failed:", error);
+    return { error: "Kunne ikke gemme opgaven. Tjek databaseforbindelse og prøv igen." };
+  }
 }
