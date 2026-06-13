@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ParticipantItemView } from "@/lib/participant";
 import { ContentDisplay } from "@/components/ContentDisplay";
 import { CheckInOverlay } from "@/components/CheckInOverlay";
@@ -30,6 +31,7 @@ export function TaskView({
   isCheckPost,
   checkPostText,
   alreadyCheckedIn,
+  showCheckPostOverview,
 }: Props) {
   return (
     <div className="space-y-4">
@@ -66,6 +68,17 @@ export function TaskView({
           <ContentDisplay entries={entries} />
         )}
       </Card>
+
+      {showCheckPostOverview && (
+        <div className="text-center">
+          <Link
+            href="/oversigt"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium hover:opacity-80"
+          >
+            <span>☑</span> Se vores tjek-post oversigt
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
