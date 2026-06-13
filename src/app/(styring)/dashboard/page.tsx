@@ -49,6 +49,19 @@ export default async function DashboardPage() {
         </form>
       }
     >
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Link href="/dashboard/hold">
+          <Button type="button" variant="accent">
+            QR-kode &amp; Hold
+          </Button>
+        </Link>
+        <Link href="/dashboard/tjekpost">
+          <Button type="button" variant="secondary">
+            Tjek-post overblik
+          </Button>
+        </Link>
+      </div>
+
       <div className="grid gap-3">
         {tasks.map((task) => (
           <Card key={task.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

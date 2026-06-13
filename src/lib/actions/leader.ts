@@ -124,6 +124,8 @@ export async function saveTaskContent(
     const group = leader;
   const taskId = String(formData.get("taskId") ?? "");
   const visible = formData.get("visible") === "on";
+  const isCheckPost = formData.get("isCheckPost") === "on";
+  const checkPostText = String(formData.get("checkPostText") ?? "").trim() || null;
 
   const taskContent = await prisma.taskContent.findUnique({
     where: { taskId_groupId: { taskId, groupId: group.id } },
@@ -133,7 +135,7 @@ export async function saveTaskContent(
 
   await prisma.taskContent.update({
     where: { id: taskContent.id },
-    data: { visibleToParticipants: visible },
+    data: { visibleToParticipants: visible, isCheckPost, checkPostText },
   });
 
   const existingIds = taskContent.items.map((i) => i.id);

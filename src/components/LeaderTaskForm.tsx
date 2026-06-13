@@ -190,10 +190,14 @@ function ScheduleFields({
 export function LeaderTaskForm({
   task,
   visibleToParticipants,
+  isCheckPost: initialIsCheckPost,
+  checkPostText: initialCheckPostText,
   items,
 }: {
   task: Task;
   visibleToParticipants: boolean;
+  isCheckPost?: boolean;
+  checkPostText?: string | null;
   items: ContentItem[];
 }) {
   const router = useRouter();
@@ -201,6 +205,8 @@ export function LeaderTaskForm({
     items.length > 0 ? items.map(toDraft) : [toDraft()]
   );
   const [visible, setVisible] = useState(visibleToParticipants);
+  const [isCheckPost, setIsCheckPost] = useState(initialIsCheckPost ?? false);
+  const [checkPostText, setCheckPostText] = useState(initialCheckPostText ?? "");
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(
     null
   );
@@ -282,6 +288,8 @@ export function LeaderTaskForm({
     const formData = new FormData(form);
     formData.set("taskId", task.id);
     formData.set("visible", visible ? "on" : "");
+    formData.set("isCheckPost", isCheckPost ? "on" : "");
+    if (!isCheckPost) formData.delete("checkPostText");
     formData.set("itemCount", String(drafts.length));
 
     try {
@@ -323,15 +331,43 @@ export function LeaderTaskForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Card>
-        <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={visible}
-            onChange={(e) => setVisible(e.target.checked)}
-            className="h-5 w-5"
-          />
-          <span className="font-medium">Synlig for deltagere</span>
-        </label>
+        <div className="space-y-3">
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              name="visible"
+              checked={visible}
+              onChange={(e) => setVisible(e.target.checked)}
+              className="h-5 w-5"
+            />
+            <span className="font-medium">Synlig for deltagere</span>
+          </label>
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              name="isCheckPost"
+              checked={isCheckPost}
+              onChange={(e) => setIsCheckPost(e.target.checked)}
+              className="h-5 w-5"
+            />
+            <span className="font-medium">Tjek-post</span>
+          </label>
+          {isCheckPost && (
+            <div className="mt-1 pl-8">
+              <Label>Bekræftelsestekst (valgfri)</Label>
+              <Textarea
+                name="checkPostText"
+                value={checkPostText}
+                onChange={(e) => setCheckPostText(e.target.value)}
+                placeholder="Du har nu tjekket denne post af!"
+                className="text-sm"
+              />
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Vises som overlay når deltagerne scanner QR-koden. Standard tekst bruges hvis tom.
+              </p>
+            </div>
+          )}
+        </div>
       </Card>
 
       {drafts.map((draft, index) => (

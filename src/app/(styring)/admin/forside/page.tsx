@@ -6,12 +6,13 @@ import {
   resetAllParticipants,
   startNewCamp,
   updateCampSettings,
+  updateWelcomeText,
 } from "@/lib/actions/admin";
 import { ImportCampForm } from "@/components/ImportCampForm";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { prisma, getActiveCamp } from "@/lib/db";
 import { requireAdminReady } from "@/lib/admin-guard";
-import { Alert, Button, Card, Input, Label } from "@/components/ui";
+import { Alert, Button, Card, Input, Label, Textarea } from "@/components/ui";
 
 export default async function AdminForsidePage({
   searchParams,
@@ -116,6 +117,27 @@ export default async function AdminForsidePage({
               </Button>
             </form>
           </div>
+        </Card>
+
+        <Card>
+          <h2 className="mb-2 text-lg font-semibold">Velkomsttekst (ubundne deltagere)</h2>
+          <p className="mb-4 text-sm text-[var(--muted)]">
+            Denne tekst vises til deltagere som endnu ikke har scannet en gruppe-QR-kode.
+          </p>
+          <form action={updateWelcomeText} className="grid gap-3">
+            <div>
+              <Label>Velkomsttekst</Label>
+              <Textarea
+                name="welcomeText"
+                defaultValue={camp.welcomeText ?? ""}
+                rows={4}
+                placeholder="Scan QR-koden fra dine ledere for at komme i gang."
+              />
+            </div>
+            <div>
+              <Button type="submit">Gem velkomsttekst</Button>
+            </div>
+          </form>
         </Card>
 
         <Card>

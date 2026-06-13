@@ -44,6 +44,8 @@ export default async function LeaderTaskPage({
       <LeaderTaskForm
         task={taskContent.task}
         visibleToParticipants={taskContent.visibleToParticipants}
+        isCheckPost={taskContent.isCheckPost}
+        checkPostText={taskContent.checkPostText}
         items={taskContent.items}
       />
     </StaffPageShell>

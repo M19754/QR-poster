@@ -8,43 +8,65 @@ datasource db {
 }
 
 model AdminSettings {
-  id                      String   @id @default("default")
-  username                String   @default("1234")
-  passwordHash            String
-  mustChangeCredentials   Boolean  @default(true)
-  updatedAt               DateTime @updatedAt
+  id                    String   @id @default("default")
+  username              String   @default("1234")
+  passwordHash          String
+  mustChangeCredentials Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
 }
 
 model Camp {
-  id                String    @id @default(uuid())
-  name              String
-  active            Boolean   @default(true)
-  archivedAt        DateTime?
-  participantEpoch  Int       @default(1)
-  defaultPassword   String    @default("E26")
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  name             String
+  active           Boolean   @default(true)
+  archivedAt       DateTime?
+  participantEpoch Int       @default(1)
+  defaultPassword  String    @default("E26")
+  welcomeText      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  groups Group[]
-  tasks  Task[]
+  groups              Group[]
+  tasks               Task[]
+  participantSessions ParticipantSession[]
 }
 
 model Group {
-  id                  String   @id @default(uuid())
-  campId              String
-  name                String
-  username            String
-  passwordHash        String
-  mustChangePassword  Boolean  @default(true)
-  sortOrder           Int      @default(0)
-  active              Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                    String   @id @default(uuid())
+  campId                String
+  name                  String
+  username              String
+  passwordHash          String
+  mustChangePassword    Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  active                Boolean  @default(true)
+  bindingToken          String   @unique @default(uuid())
+  bindingTokenVersion   Int      @default(1)
+  showCheckPostOverview Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  camp         Camp          @relation(fields: [campId], references: [id], onDelete: Cascade)
-  taskContents TaskContent[]
+  camp                Camp                @relation(fields: [campId], references: [id], onDelete: Cascade)
+  taskContents        TaskContent[]
+  holds               Hold[]
+  participantSessions ParticipantSession[]
+  taskCheckIns        TaskCheckIn[]
 
   @@unique([campId, username])
+}
+
+model Hold {
+  id        String   @id @default(uuid())
+  groupId   String
+  name      String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group               Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  participantSessions ParticipantSession[]
+  taskCheckIns        TaskCheckIn[]
 }
 
 model Task {
@@ -53,11 +75,12 @@ model Task {
   title     String
   sortOrder Int      @default(0)
   active    Boolean  @default(true)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   camp         Camp          @relation(fields: [campId], references: [id], onDelete: Cascade)
   taskContents TaskContent[]
+  checkIns     TaskCheckIn[]
 }
 
 model TaskContent {
@@ -65,6 +88,8 @@ model TaskContent {
   taskId                String
   groupId               String
   visibleToParticipants Boolean  @default(true)
+  isCheckPost           Boolean  @default(false)
+  checkPostText         String?
   updatedAt             DateTime @updatedAt
 
   task   Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -75,19 +100,48 @@ model TaskContent {
 }
 
 model ContentItem {
-  id             String    @id @default(uuid())
-  taskContentId  String
-  type           String
-  body           String?
-  fileUrl        String?
-  fileName       String?
-  useSchedule                 Boolean   @default(false)
-  showOpenTimeToParticipants  Boolean   @default(true)
-  visibleFrom                 DateTime?
-  visibleUntil                DateTime?
-  sortOrder      Int       @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                         String    @id @default(uuid())
+  taskContentId              String
+  type                       String
+  body                       String?
+  fileUrl                    String?
+  fileName                   String?
+  useSchedule                Boolean   @default(false)
+  showOpenTimeToParticipants Boolean   @default(true)
+  visibleFrom                DateTime?
+  visibleUntil               DateTime?
+  sortOrder                  Int       @default(0)
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 
   taskContent TaskContent @relation(fields: [taskContentId], references: [id], onDelete: Cascade)
+}
+
+model ParticipantSession {
+  id         String   @id @default(uuid())
+  campId     String
+  groupId    String
+  holdId     String?
+  shortCode  String   @unique
+  boundAt    DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  camp         Camp          @relation(fields: [campId], references: [id], onDelete: Cascade)
+  group        Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  hold         Hold?         @relation(fields: [holdId], references: [id], onDelete: SetNull)
+  taskCheckIns TaskCheckIn[]
+}
+
+model TaskCheckIn {
+  id        String   @id @default(uuid())
+  taskId    String
+  groupId   String
+  holdId    String?
+  sessionId String
+  checkedAt DateTime @default(now())
+
+  task    Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  group   Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  hold    Hold?              @relation(fields: [holdId], references: [id], onDelete: SetNull)
+  session ParticipantSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }

@@ -226,6 +226,21 @@ export async function resetAllParticipants() {
   revalidateAdmin();
 }
 
+export async function updateWelcomeText(formData: FormData) {
+  await requireAdminReady();
+  const camp = await getActiveCamp();
+  if (!camp) return;
+
+  const welcomeText = String(formData.get("welcomeText") ?? "").trim() || null;
+
+  await prisma.camp.update({
+    where: { id: camp.id },
+    data: { welcomeText },
+  });
+
+  revalidateAdmin();
+}
+
 export async function importCampStructure(formData: FormData) {
   await requireAdminReady();
   const camp = await getActiveCamp();
